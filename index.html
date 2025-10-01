@@ -13,21 +13,15 @@
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
     <style>
-        :root {
-            --gold: #d4af37;
-            --text: #f7f3f0;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body {
             height: 100%;
-            margin: 0;
-            color: var(--text);
-            font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
             overflow: hidden;
             background: #000;
+            font-family: Inter, sans-serif;
         }
 
+        /* AR-сцена — тепер НЕ приховуємо! */
         a-scene {
             position: fixed;
             top: 0;
@@ -37,41 +31,44 @@
             z-index: 10;
         }
 
-        /* HUD поверх AR */
-        .ar-hud {
+        /* Прозорий canvas поверх AR */
+        #gameCanvas {
             position: fixed;
-            top: 12px;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 20;
+            pointer-events: auto;
+            touch-action: none;
+        }
+
+        /* HUD */
+        .hud {
+            position: fixed;
+            top: 16px;
             left: 50%;
             transform: translateX(-50%);
-            z-index: 40;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            pointer-events: none;
-            color: white;
+            z-index: 30;
             text-align: center;
-            padding: 0 16px;
-            max-width: 90%;
+            color: white;
+            pointer-events: none;
         }
-
         .instructions {
-            font-size: 16px;
+            background: rgba(0,0,0,0.5);
+            padding: 6px 12px;
+            border-radius: 10px;
             font-weight: 700;
+            font-size: 16px;
             margin-bottom: 6px;
-            background: rgba(0,0,0,0.5);
-            padding: 4px 10px;
-            border-radius: 8px;
-            backdrop-filter: blur(4px);
         }
-
-        .score-display {
-            font-size: 18px;
+        .score {
+            background: rgba(212, 175, 55, 0.7);
+            color: #000;
+            padding: 6px 14px;
+            border-radius: 10px;
             font-weight: 800;
-            color: var(--gold);
-            background: rgba(0,0,0,0.5);
-            padding: 4px 12px;
-            border-radius: 8px;
-            backdrop-filter: blur(4px);
+            font-size: 18px;
         }
 
         .feedback {
@@ -81,26 +78,25 @@
             transform: translate(-50%, -50%);
             font-size: 20px;
             font-weight: 800;
-            z-index: 50;
+            z-index: 40;
             opacity: 0;
             pointer-events: none;
             text-shadow: 0 2px 6px rgba(0,0,0,0.8);
         }
 
-        .victory-message {
+        .victory {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 22px;
+            background: rgba(0,0,0,0.8);
+            color: #d4af37;
+            padding: 20px;
+            border-radius: 16px;
             font-weight: 800;
-            color: var(--gold);
-            z-index: 60;
+            font-size: 22px;
             text-align: center;
-            background: rgba(0,0,0,0.7);
-            padding: 16px;
-            border-radius: 12px;
-            backdrop-filter: blur(6px);
+            z-index: 50;
             display: none;
             max-width: 80%;
         }
@@ -110,8 +106,8 @@
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.7);
-            color: var(--gold);
+            background: rgba(0,0,0,0.7);
+            color: #d4af37;
             padding: 8px 16px;
             border-radius: 8px;
             font-size: 14px;
@@ -119,308 +115,219 @@
             z-index: 30;
             display: block;
         }
-
-        .btn-controls {
-            position: fixed;
-            top: 12px;
-            right: 12px;
-            z-index: 40;
-            display: flex;
-            gap: 8px;
-        }
-
-        .btn {
-            background: linear-gradient(180deg, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.35));
-            border: 1px solid rgba(212, 175, 55, 0.15);
-            padding: 6px 10px;
-            border-radius: 8px;
-            color: var(--gold);
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            backdrop-filter: blur(4px);
-            pointer-events: auto;
-        }
     </style>
 </head>
 <body>
 
-    <div class="arjs-loader" id="loader">
-        <h2 class="pulse">Аня надає крила 🪽</h2>
-        <div>Завантаження камери...</div>
-    </div>
-
-    <!-- HUD поверх AR -->
-    <div class="ar-hud" id="arHud" style="display: none;">
-        <div class="instructions">Лови тільки крила 🪽</div>
-        <div class="score-display" id="scoreDisplay">Крила: 0/10</div>
-    </div>
-
-    <div class="btn-controls">
-        <button id="btnPlay" class="btn" title="Play video">▶</button>
-        <button id="btnStop" class="btn" title="Stop video">⏸</button>
-    </div>
-
-    <div class="feedback" id="feedback"></div>
-    <div class="victory-message" id="victoryMessage"></div>
-
+    <!-- AR-сцена (камера буде видно!) -->
     <a-scene
         mindar-image="imageTargetSrc: https://lessa2332.github.io/ana/marker.mind; autoStart: true; uiLoading: no; uiError: no;"
         embedded
         color-space="sRGB"
         vr-mode-ui="enabled: false"
         device-orientation-permission-ui="enabled: false">
-
+        
         <a-assets>
-            <video id="video1" src="video1.mp4" playsinline webkit-playsinline preload="auto" loop="false"></video>
+            <!-- ВАЖЛИВО: додай muted! -->
+            <video id="video1" src="video1.mp4" muted playsinline webkit-playsinline preload="auto" loop="false"></video>
         </a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <a-entity mindar-image-target="targetIndex: 0" id="targetRoot">
-            <!-- Відео Ани -->
+        <a-entity mindar-image-target="targetIndex: 0">
             <a-plane id="videoPlane" position="0 0 0" width="0.85" height="1.5" 
                      material="shader: flat; src: #video1; transparent: false;" visible="false"></a-plane>
-
-            <!-- Тут будуть крила (додаються динамічно через JS) -->
         </a-entity>
     </a-scene>
 
+    <!-- Прозорий canvas для гри -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Інтерфейс -->
+    <div class="hud" id="hud" style="display:none;">
+        <div class="instructions">Лови тільки крила 🪽</div>
+        <div class="score" id="score">Крила: 0/10</div>
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <div class="victory" id="victory"></div>
     <div id="markerHint">Направте камеру на фото 🪽</div>
 
     <script>
         // Елементи
         const videoEl = document.getElementById('video1');
-        const btnPlay = document.getElementById('btnPlay');
-        const btnStop = document.getElementById('btnStop');
-        const loader = document.getElementById('loader');
-        const arHud = document.getElementById('arHud');
-        const scoreDisplay = document.getElementById('scoreDisplay');
-        const feedbackEl = document.getElementById('feedback');
-        const victoryMessage = document.getElementById('victoryMessage');
-        const markerHint = document.getElementById('markerHint');
         const videoPlane = document.getElementById('videoPlane');
-        const targetRoot = document.getElementById('targetRoot');
+        const gameCanvas = document.getElementById('gameCanvas');
+        const ctx = gameCanvas.getContext('2d');
+        const hud = document.getElementById('hud');
+        const scoreEl = document.getElementById('score');
+        const feedbackEl = document.getElementById('feedback');
+        const victoryEl = document.getElementById('victory');
+        const markerHint = document.getElementById('markerHint');
 
+        // Налаштування
         let isMarkerFound = false;
         let score = 0;
-        const targetScore = 10;
-        const goodEmoji = '🪽';
-        const allEmojis = ['🪽', '🎂', '🍷', '🎁', '🌹', '😂'];
-        let wingEntities = []; // зберігаємо посилання на крила для видалення
+        const TARGET = 10;
+        let fallingItems = [];
         let gameActive = false;
-        let spawnInterval;
+        let animationId = null;
 
-        // Показати/сховати підказку
-        function showMarkerHint(text, duration = 3000) {
+        // Масштаб canvas
+        function resizeCanvas() {
+            gameCanvas.width = window.innerWidth;
+            gameCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Показати підказку
+        function showHint(text, time = 3000) {
             markerHint.textContent = text;
             markerHint.style.display = 'block';
-            setTimeout(() => { markerHint.style.display = 'none'; }, duration);
+            setTimeout(() => markerHint.style.display = 'none', time);
         }
 
-        // Показати коротке повідомлення
+        // Показати фідбек
         function showFeedback(text, isGood = true) {
             feedbackEl.textContent = text;
             feedbackEl.style.color = isGood ? '#d4af37' : '#fff';
             feedbackEl.style.opacity = '1';
-            setTimeout(() => {
-                feedbackEl.style.opacity = '0';
-            }, 800);
+            setTimeout(() => feedbackEl.style.opacity = '0', 800);
         }
 
-        // Почати гру в AR
-        function startARGame() {
+        // Створити елемент
+        function spawnItem() {
+            if (!gameActive) return;
+            const emojis = ['🪽', '🎂', '🍷', '🎁', '🌹', '😂'];
+            const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+            fallingItems.push({
+                x: Math.random() * gameCanvas.width,
+                y: -50,
+                size: 30 + Math.random() * 20,
+                speed: 1 + Math.random() * 2,
+                emoji: emoji,
+                isWing: emoji === '🪽'
+            });
+        }
+
+        // Оновити гру
+        function update() {
+            if (!gameActive) return;
+
+            // Очистити
+            ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+            // Оновити елементи
+            for (let i = fallingItems.length - 1; i >= 0; i--) {
+                const item = fallingItems[i];
+                item.y += item.speed;
+
+                // Малюємо
+                ctx.font = `${item.size}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(item.emoji, item.x, item.y);
+
+                // Видалити, якщо вийшов за межі
+                if (item.y > gameCanvas.height + 50) {
+                    fallingItems.splice(i, 1);
+                }
+            }
+
+            // Спавн кожні 800 мс
+            if (Math.random() < 0.02) spawnItem();
+
+            animationId = requestAnimationFrame(update);
+        }
+
+        // Обробка дотику
+        gameCanvas.addEventListener('pointerdown', (e) => {
+            if (!gameActive) return;
+            const rect = gameCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            for (let i = fallingItems.length - 1; i >= 0; i--) {
+                const item = fallingItems[i];
+                const dx = x - item.x;
+                const dy = y - item.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < item.size / 2) {
+                    // Влучив!
+                    const isWing = item.isWing;
+                    fallingItems.splice(i, 1);
+
+                    if (isWing) {
+                        score++;
+                        scoreEl.textContent = `Крила: ${score}/${TARGET}`;
+                        showFeedback('+1 крило! 🪽', true);
+                        if (score >= TARGET) {
+                            endGame(true);
+                        }
+                    } else {
+                        showFeedback('Ой, ще без крил 😅', false);
+                    }
+                    break;
+                }
+            }
+        });
+
+        function startGame() {
             if (gameActive) return;
             gameActive = true;
             score = 0;
-            scoreDisplay.textContent = `Крила: ${score}/${targetScore}`;
-            arHud.style.display = 'flex';
-            victoryMessage.style.display = 'none';
-
-            // Створюємо крила кожні 1.2 секунди
-            spawnInterval = setInterval(spawnWing, 1200);
-            spawnWing(); // одразу одне
+            fallingItems = [];
+            scoreEl.textContent = `Крила: ${score}/${TARGET}`;
+            hud.style.display = 'block';
+            victoryEl.style.display = 'none';
+            update();
+            // Перший елемент
+            setTimeout(spawnItem, 500);
         }
-
-        // Створити одне крило (або інший емодзі)
-        function spawnWing() {
-            if (!gameActive || wingEntities.length >= 6) return;
-
-            const emoji = allEmojis[Math.floor(Math.random() * allEmojis.length)];
-            const size = 0.1 + Math.random() * 0.08; // розмір у метрах
-            const x = (Math.random() - 0.5) * 0.6; // -0.3 до +0.3
-            const z = -0.1 - Math.random() * 0.2;  // трохи вглиб
-
-            const wing = document.createElement('a-entity');
-            wing.setAttribute('position', `${x} 0.3 ${z}`);
-            wing.setAttribute('text', {
-                value: emoji,
-                align: 'center',
-                width: 1,
-                color: emoji === '🪽' ? '#d4af37' : '#fff'
-            });
-            wing.setAttribute('scale', `${size} ${size} ${size}`);
-            wing.classList.add('wing');
-            wing.dataset.emoji = emoji;
-
-            // Додаємо анімацію: повільний рух вгору та обертання
-            wing.setAttribute('animation__move', {
-                property: 'position',
-                to: `${x} 0.8 ${z}`,
-                dur: 3000 + Math.random() * 2000,
-                easing: 'linear'
-            });
-            wing.setAttribute('animation__rotate', {
-                property: 'rotation',
-                to: `0 ${360} 0`,
-                loop: 'true',
-                dur: 2000,
-                easing: 'linear'
-            });
-
-            targetRoot.appendChild(wing);
-            wingEntities.push(wing);
-
-            // Автоматично видаляти через 4 секунди
-            setTimeout(() => {
-                if (wing.parentNode) {
-                    wing.parentNode.removeChild(wing);
-                    const index = wingEntities.indexOf(wing);
-                    if (index > -1) wingEntities.splice(index, 1);
-                }
-            }, 4000);
-        }
-
-        // Обробка дотику по сцені
-        document.body.addEventListener('click', (e) => {
-            if (!gameActive || !isMarkerFound) return;
-
-            // Перетворюємо 2D-координати в 3D-промінь (raycaster)
-            const scene = document.querySelector('a-scene');
-            const mouse = {
-                x: (e.clientX / window.innerWidth) * 2 - 1,
-                y: -(e.clientY / window.innerHeight) * 2 + 1
-            };
-
-            const raycaster = new THREE.Raycaster();
-            const camera = scene.camera;
-            raycaster.setFromCamera(mouse, camera);
-
-            // Шукаємо перетин з крилами
-            const wings = document.querySelectorAll('.wing');
-            const intersections = [];
-            wings.forEach(wing => {
-                const el = wing.object3D;
-                if (el) {
-                    const intersects = raycaster.intersectObject(el, true);
-                    if (intersects.length > 0) {
-                        intersections.push({ wing, distance: intersects[0].distance });
-                    }
-                }
-            });
-
-            if (intersections.length > 0) {
-                // Беремо найближче крило
-                intersections.sort((a, b) => a.distance - b.distance);
-                const closest = intersections[0].wing;
-                const emoji = closest.dataset.emoji;
-
-                // Видаляємо крило
-                if (closest.parentNode) {
-                    closest.parentNode.removeChild(closest);
-                    const index = wingEntities.indexOf(closest);
-                    if (index > -1) wingEntities.splice(index, 1);
-                }
-
-                if (emoji === goodEmoji) {
-                    score++;
-                    scoreDisplay.textContent = `Крила: ${score}/${targetScore}`;
-                    showFeedback('+1 крило! 🪽', true);
-                    if (score >= targetScore) {
-                        endGame(true);
-                    }
-                } else {
-                    showFeedback('Ой, ще без крил 😅', false);
-                }
-            }
-        });
 
         function endGame(isWin) {
             gameActive = false;
-            clearInterval(spawnInterval);
-            // Видаляємо всі крила
-            wingEntities.forEach(wing => {
-                if (wing.parentNode) wing.parentNode.removeChild(wing);
-            });
-            wingEntities = [];
-
+            if (animationId) cancelAnimationFrame(animationId);
             if (isWin) {
-                victoryMessage.textContent = 'Аня надає крила! 💋';
-                victoryMessage.style.display = 'block';
-                // Через 3 секунди — сховати і перезапустити гру
+                victoryEl.textContent = 'Аня надає крила! 💋';
+                victoryEl.style.display = 'block';
                 setTimeout(() => {
-                    victoryMessage.style.display = 'none';
-                    startARGame(); // нова спроба
+                    victoryEl.style.display = 'none';
+                    startGame(); // нова гра
                 }, 3000);
             }
         }
-
-        // --- Керування відео ---
-        btnPlay.addEventListener('click', function() {
-            if (isMarkerFound) {
-                videoEl.muted = false;
-                videoEl.play().catch(() => {});
-            } else {
-                showMarkerHint('Направте камеру на фото 🪽');
-            }
-        });
-
-        btnStop.addEventListener('click', function() {
-            if (isMarkerFound) {
-                videoEl.pause();
-                videoEl.currentTime = 0;
-            } else {
-                showMarkerHint('Направте камеру на фото 🪽');
-            }
-        });
 
         // --- Події AR ---
         const scene = document.querySelector('a-scene');
 
         scene.addEventListener('renderstart', () => {
+            // Ховаємо лоадер, якщо є
+            const loader = document.querySelector('.arjs-loader');
             if (loader) loader.style.display = 'none';
-            const ui = document.querySelector('.mindar-ui-overlay');
-            if (ui) ui.style.display = 'none';
         });
 
         scene.addEventListener('targetFound', () => {
             isMarkerFound = true;
             markerHint.style.display = 'none';
             videoPlane.setAttribute('visible', 'true');
-            videoEl.muted = false;
-            videoEl.play().catch(() => {});
-            startARGame(); // ✨ гра починається!
+            videoEl.play().catch(e => console.log("Play error:", e));
+            startGame(); // ✨ гра починається!
         });
 
         scene.addEventListener('targetLost', () => {
             isMarkerFound = false;
-            if (!videoEl.paused) {
-                videoEl.pause();
-                videoEl.currentTime = 0;
-            }
+            if (!videoEl.paused) videoEl.pause();
             videoPlane.setAttribute('visible', 'false');
             gameActive = false;
-            clearInterval(spawnInterval);
-            arHud.style.display = 'none';
-            victoryMessage.style.display = 'none';
-            wingEntities.forEach(wing => {
-                if (wing.parentNode) wing.parentNode.removeChild(wing);
-            });
-            wingEntities = [];
+            if (animationId) cancelAnimationFrame(animationId);
+            hud.style.display = 'none';
+            victoryEl.style.display = 'none';
+            fallingItems = [];
         });
 
         // Початкова підказка
-        setTimeout(() => { markerHint.style.display = 'none'; }, 4000);
+        setTimeout(() => markerHint.style.display = 'none', 4000);
     </script>
 </body>
 </html>
