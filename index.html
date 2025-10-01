@@ -29,6 +29,7 @@
             -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;
+            touch-action: none;
         }
 
         /* Loading Screen */
@@ -45,6 +46,12 @@
             align-items: center;
             z-index: 100;
             color: #d4af37;
+            transition: opacity 0.5s ease;
+        }
+
+        .loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
 
         .loading-spinner {
@@ -55,6 +62,22 @@
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-bottom: 20px;
+        }
+
+        .loading-progress {
+            width: 200px;
+            height: 4px;
+            background: rgba(212, 175, 55, 0.3);
+            border-radius: 2px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+
+        .loading-progress-bar {
+            height: 100%;
+            background: #d4af37;
+            width: 0%;
+            transition: width 0.3s ease;
         }
 
         @keyframes spin {
@@ -324,6 +347,21 @@
             margin-top: 20px;
         }
 
+        /* Debug Info */
+        .debug-info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #00ff00;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: monospace;
+            z-index: 1000;
+            display: none;
+        }
+
         /* Responsive Design */
         @media (max-width: 480px) {
             .video-controls {
@@ -397,6 +435,9 @@
     <div class="loading-screen" id="loadingScreen">
         <div class="loading-spinner"></div>
         <div>Завантаження AR...</div>
+        <div class="loading-progress">
+            <div class="loading-progress-bar" id="loadingProgress"></div>
+        </div>
     </div>
 
     <!-- Error Screen -->
@@ -405,6 +446,9 @@
         <div id="errorMessage">Сталася помилка</div>
         <button class="retry-btn" id="retryBtn">Спробувати знову</button>
     </div>
+
+    <!-- Debug Info -->
+    <div class="debug-info" id="debugInfo"></div>
 
     <!-- AR Scene -->
     <a-scene
@@ -416,7 +460,7 @@
         id="arScene">
         
         <a-assets>
-            <video id="video1" src="./video1.mp4" muted playsinline webkit-playsinline preload="metadata" loop></video>
+            <video id="video1" src="./video1.mp4" muted playsinline webkit-playsinline preload="auto" loop crossorigin="anonymous"></video>
         </a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false" id="camera"></a-camera>
@@ -463,6 +507,7 @@
                 this.setupGameState();
                 this.bindEvents();
                 this.initializeAR();
+                this.setupPerformanceMonitoring();
             }
 
             initializeElements() {
@@ -475,6 +520,7 @@
                 
                 // UI elements
                 this.loadingScreen = document.getElementById('loadingScreen');
+                this.loadingProgress = document.getElementById('loadingProgress');
                 this.errorScreen = document.getElementById('errorScreen');
                 this.errorMessage = document.getElementById('errorMessage');
                 this.retryBtn = document.getElementById('retryBtn');
@@ -487,8 +533,10 @@
                 this.videoControls = document.getElementById('videoControls');
                 this.replayBtn = document.getElementById('replayBtn');
                 this.soundBtn = document.getElementById('soundBtn');
+                this.debugInfo = document.getElementById('debugInfo');
 
                 this.validateElements();
+                this.resizeCanvas();
             }
 
             validateElements() {
@@ -498,9 +546,9 @@
                     this.victoryEl, this.markerHint, this.videoControls
                 ];
 
-                requiredElements.forEach(element => {
+                requiredElements.forEach((element, index) => {
                     if (!element) {
-                        throw new Error('Required DOM element not found');
+                        throw new Error(`Required DOM element not found at index ${index}`);
                     }
                 });
             }
@@ -515,17 +563,22 @@
                     animationId: null,
                     soundEnabled: false,
                     lastSpawnTime: 0,
-                    SPAWN_INTERVAL: 500
+                    SPAWN_INTERVAL: 800,
+                    lastFrameTime: 0,
+                    frameCount: 0,
+                    fps: 0
                 };
 
-                this.resizeCanvas();
-                this.setupPerformanceMonitoring();
+                this.resizeTimeout = null;
+                this.isInitialized = false;
             }
 
             setupPerformanceMonitoring() {
-                this.fps = 0;
-                this.lastFrameTime = performance.now();
-                this.frameCount = 0;
+                // Enable debug info with URL parameter
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.has('debug')) {
+                    this.debugInfo.style.display = 'block';
+                }
             }
 
             bindEvents() {
@@ -533,10 +586,14 @@
                 window.addEventListener('resize', () => this.throttledResize());
                 window.addEventListener('load', () => this.handleLoad());
                 window.addEventListener('error', (e) => this.handleGlobalError(e));
+                window.addEventListener('unhandledrejection', (e) => this.handlePromiseRejection(e));
 
                 // Game events
                 this.gameCanvas.addEventListener('pointerdown', (e) => this.handleTap(e));
-                this.gameCanvas.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+                this.gameCanvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.handleTap(e);
+                }, { passive: false });
 
                 // Button events
                 this.replayBtn.addEventListener('click', () => this.replayVideo());
@@ -548,30 +605,49 @@
                 this.videoEl.addEventListener('loadeddata', () => this.handleVideoLoad());
                 this.videoEl.addEventListener('error', (e) => this.handleVideoError(e));
                 this.videoEl.addEventListener('ended', () => this.handleVideoEnd());
+                this.videoEl.addEventListener('canplay', () => this.updateLoadingProgress(50));
+                this.videoEl.addEventListener('progress', () => this.handleVideoProgress());
 
                 // AR events
                 this.scene.addEventListener('renderstart', () => this.handleARLoad());
                 this.scene.addEventListener('targetFound', () => this.handleTargetFound());
                 this.scene.addEventListener('targetLost', () => this.handleTargetLost());
-                this.scene.addEventListener('arError', (e) => this.handleARError(e));
             }
 
-            initializeAR() {
+            async initializeAR() {
                 try {
-                    // AR.js automatically initializes when scene is attached
-                    setTimeout(() => {
-                        if (this.scene.is('mindar')) {
-                            this.hideLoading();
-                        }
-                    }, 3000);
+                    this.updateLoadingProgress(20);
+                    
+                    // Wait for A-Frame to be ready
+                    if (!this.scene.hasLoaded) {
+                        await new Promise(resolve => {
+                            this.scene.addEventListener('loaded', resolve, { once: true });
+                        });
+                    }
+
+                    this.updateLoadingProgress(40);
+
+                    // Initialize MindAR
+                    const mindarSystem = this.scene.systems['mindar-image-system'];
+                    if (!mindarSystem) {
+                        throw new Error('MindAR system not found');
+                    }
+
+                    await mindarSystem.start();
+                    this.updateLoadingProgress(80);
+                    
+                    this.isInitialized = true;
+                    console.log('AR initialized successfully');
+                    
                 } catch (error) {
-                    this.showError('Помилка ініціалізації AR: ' + error.message);
+                    console.error('AR initialization failed:', error);
+                    this.showError(`Помилка ініціалізації AR: ${error.message}`);
                 }
             }
 
             // === RESIZE HANDLING ===
             resizeCanvas() {
-                const dpr = window.devicePixelRatio || 1;
+                const dpr = Math.min(window.devicePixelRatio || 1, 2);
                 this.gameCanvas.width = window.innerWidth * dpr;
                 this.gameCanvas.height = window.innerHeight * dpr;
                 this.gameCanvas.style.width = window.innerWidth + 'px';
@@ -590,7 +666,7 @@
 
             // === GAME LOGIC ===
             spawnItem() {
-                if (!this.gameState.gameActive) return;
+                if (!this.gameState.gameActive || !this.gameState.isMarkerFound) return;
 
                 const currentTime = performance.now();
                 if (currentTime - this.gameState.lastSpawnTime < this.gameState.SPAWN_INTERVAL) {
@@ -598,8 +674,8 @@
                 }
 
                 const emojis = ['🪽', '🎂', '🍷', '🎁', '🌹', '😂'];
-                const randomIndex = Math.min(Math.floor(Math.random() * emojis.length), emojis.length - 1);
-                const emoji = emojis[randomIndex];
+                const isWing = Math.random() < 0.4; // 40% chance for wings
+                const emoji = isWing ? '🪽' : emojis[Math.floor(Math.random() * (emojis.length - 1)) + 1];
 
                 this.gameState.fallingItems.push({
                     x: Math.random() * (this.gameCanvas.width - 100) + 50,
@@ -607,23 +683,29 @@
                     size: 28 + Math.random() * 24,
                     speed: 1.5 + Math.random() * 2.5,
                     emoji: emoji,
-                    isWing: emoji === '🪽',
+                    isWing: isWing,
                     id: performance.now() + Math.random()
                 });
 
                 this.gameState.lastSpawnTime = currentTime;
             }
 
-            update() {
-                if (!this.gameState.gameActive) return;
+            update(currentTime = performance.now()) {
+                if (!this.gameState.gameActive || !this.gameState.isMarkerFound) {
+                    if (this.gameState.animationId) {
+                        cancelAnimationFrame(this.gameState.animationId);
+                        this.gameState.animationId = null;
+                    }
+                    return;
+                }
 
                 // Calculate FPS
                 this.frameCount++;
-                const currentTime = performance.now();
-                if (currentTime - this.lastFrameTime >= 1000) {
-                    this.fps = this.frameCount;
+                if (currentTime - this.gameState.lastFrameTime >= 1000) {
+                    this.gameState.fps = this.frameCount;
                     this.frameCount = 0;
-                    this.lastFrameTime = currentTime;
+                    this.gameState.lastFrameTime = currentTime;
+                    this.updateDebugInfo();
                 }
 
                 // Clear canvas
@@ -637,6 +719,9 @@
                     const item = this.gameState.fallingItems[i];
                     item.y += item.speed;
 
+                    // Add subtle horizontal movement
+                    item.x += Math.sin(currentTime * 0.001 + item.id) * 0.5;
+
                     this.ctx.font = `bold ${item.size}px sans-serif`;
                     this.ctx.fillText(item.emoji, item.x, item.y);
 
@@ -647,22 +732,29 @@
                 }
 
                 // Spawn new items with probability
-                if (Math.random() < 0.03) {
+                if (Math.random() < 0.04) {
                     this.spawnItem();
                 }
 
-                this.gameState.animationId = requestAnimationFrame(() => this.update());
+                this.gameState.animationId = requestAnimationFrame((time) => this.update(time));
             }
 
             handleTap(event) {
-                if (!this.gameState.gameActive) return;
+                if (!this.gameState.gameActive || !this.gameState.isMarkerFound) return;
 
+                event.preventDefault();
+                
                 const rect = this.gameCanvas.getBoundingClientRect();
                 const scaleX = this.gameCanvas.width / rect.width;
                 const scaleY = this.gameCanvas.height / rect.height;
                 
-                const x = (event.clientX - rect.left) * scaleX;
-                const y = (event.clientY - rect.top) * scaleY;
+                const clientX = event.clientX || (event.touches && event.touches[0].clientX);
+                const clientY = event.clientY || (event.touches && event.touches[0].clientY);
+                
+                if (!clientX || !clientY) return;
+                
+                const x = (clientX - rect.left) * scaleX;
+                const y = (clientY - rect.top) * scaleY;
 
                 let hit = false;
                 
@@ -710,8 +802,15 @@
                 this.showVideoControls(true);
                 this.hideVictory();
                 
+                this.gameState.lastFrameTime = performance.now();
                 this.update();
-                setTimeout(() => this.spawnItem(), 800);
+                
+                // Initial spawn
+                setTimeout(() => {
+                    for (let i = 0; i < 3; i++) {
+                        setTimeout(() => this.spawnItem(), i * 300);
+                    }
+                }, 500);
             }
 
             endGame(isWin) {
@@ -721,6 +820,10 @@
                     cancelAnimationFrame(this.gameState.animationId);
                     this.gameState.animationId = null;
                 }
+
+                // Clear falling items
+                this.gameState.fallingItems = [];
+                this.ctx.clearRect(0, 0, this.gameCanvas.width, this.gameCanvas.height);
 
                 if (isWin) {
                     this.showVictory();
@@ -736,6 +839,16 @@
                 this.scoreEl.textContent = `Крила: ${this.gameState.score}/${this.gameState.TARGET_SCORE}`;
             }
 
+            updateDebugInfo() {
+                if (this.debugInfo.style.display !== 'block') return;
+                
+                this.debugInfo.textContent = 
+                    `FPS: ${this.gameState.fps} | ` +
+                    `Items: ${this.gameState.fallingItems.length} | ` +
+                    `Marker: ${this.gameState.isMarkerFound ? 'Found' : 'Lost'} | ` +
+                    `Score: ${this.gameState.score}`;
+            }
+
             // === VIDEO CONTROLS ===
             async toggleSound() {
                 try {
@@ -747,8 +860,10 @@
                         this.soundBtn.classList.add('on');
                         this.showFeedback('Звук увімкнено 🔊', true);
                         
-                        // Try to play with sound
-                        await this.videoEl.play();
+                        // Try to play with sound if video is paused
+                        if (this.videoEl.paused) {
+                            await this.videoEl.play();
+                        }
                     } else {
                         this.soundBtn.textContent = '🔇 Увімк. звук';
                         this.soundBtn.classList.remove('on');
@@ -757,16 +872,24 @@
                 } catch (error) {
                     console.warn('Audio play failed:', error);
                     this.showFeedback('Звук недоступний', false);
+                    // Revert state
+                    this.gameState.soundEnabled = false;
+                    this.videoEl.muted = true;
+                    this.soundBtn.textContent = '🔇 Увімк. звук';
+                    this.soundBtn.classList.remove('on');
                 }
             }
 
             replayVideo() {
                 try {
                     this.videoEl.currentTime = 0;
-                    this.videoEl.play();
+                    this.videoEl.play().catch(e => {
+                        console.warn('Video replay play failed:', e);
+                    });
                     this.showFeedback('Відео перезапущено 🔄', true);
                 } catch (error) {
                     console.warn('Video replay failed:', error);
+                    this.showFeedback('Помилка перезапуску', false);
                 }
             }
 
@@ -813,25 +936,36 @@
                 this.markerHint.classList.remove('hidden');
             }
 
+            updateLoadingProgress(percent) {
+                this.loadingProgress.style.width = percent + '%';
+            }
+
             // === AR EVENT HANDLERS ===
             handleARLoad() {
-                this.hideLoading();
-                this.scene.classList.add('ready');
+                console.log('AR scene rendered');
+                this.updateLoadingProgress(100);
+                setTimeout(() => {
+                    this.hideLoading();
+                    this.scene.classList.add('ready');
+                }, 500);
             }
 
             handleTargetFound() {
+                console.log('Marker found');
                 this.gameState.isMarkerFound = true;
                 this.hideMarkerHint();
                 this.videoPlane.setAttribute('visible', 'true');
                 
                 this.videoEl.play().catch(e => {
                     console.warn('Autoplay failed:', e);
+                    this.showFeedback('Натисніть для запуску відео', false);
                 });
                 
                 this.startGame();
             }
 
             handleTargetLost() {
+                console.log('Marker lost');
                 this.gameState.isMarkerFound = false;
                 this.videoPlane.setAttribute('visible', 'false');
                 
@@ -839,16 +973,10 @@
                     this.videoEl.pause();
                 }
                 
-                this.gameState.gameActive = false;
-                if (this.gameState.animationId) {
-                    cancelAnimationFrame(this.gameState.animationId);
-                    this.gameState.animationId = null;
-                }
-                
+                this.endGame(false);
                 this.showHUD(false);
                 this.showVideoControls(false);
                 this.hideVictory();
-                this.gameState.fallingItems = [];
                 this.showMarkerHint();
             }
 
@@ -858,14 +986,25 @@
                 this.showError('Сталася неочікувана помилка');
             }
 
+            handlePromiseRejection(event) {
+                console.error('Unhandled promise rejection:', event.reason);
+                this.showError('Помилка завантаження: ' + event.reason);
+            }
+
             handleVideoError(event) {
                 console.error('Video error:', event);
                 this.showFeedback('Помилка завантаження відео', false);
             }
 
-            handleARError(event) {
-                console.error('AR error:', event.detail);
-                this.showError('Помилка AR: ' + event.detail);
+            handleVideoProgress() {
+                if (this.videoEl.buffered.length > 0) {
+                    const bufferedEnd = this.videoEl.buffered.end(this.videoEl.buffered.length - 1);
+                    const duration = this.videoEl.duration;
+                    if (duration > 0) {
+                        const progress = (bufferedEnd / duration) * 100;
+                        this.updateLoadingProgress(Math.min(70, 40 + progress * 0.3));
+                    }
+                }
             }
 
             showError(message) {
@@ -879,11 +1018,15 @@
             }
 
             hideLoading() {
-                this.loadingScreen.style.display = 'none';
+                this.loadingScreen.classList.add('hidden');
+                setTimeout(() => {
+                    this.loadingScreen.style.display = 'none';
+                }, 500);
             }
 
             // === EVENT HANDLERS ===
             handleLoad() {
+                console.log('Page loaded');
                 // Adjust for small screens
                 if (window.innerHeight < 600) {
                     this.videoControls.style.bottom = '70px';
@@ -892,6 +1035,7 @@
 
             handleVideoLoad() {
                 console.log('Video loaded successfully');
+                this.updateLoadingProgress(60);
             }
 
             handleVideoEnd() {
@@ -901,19 +1045,36 @@
             retryAR() {
                 this.hideError();
                 this.loadingScreen.style.display = 'flex';
+                this.loadingScreen.classList.remove('hidden');
+                this.updateLoadingProgress(0);
+                
                 setTimeout(() => {
                     window.location.reload();
-                }, 1000);
+                }, 500);
             }
         }
 
         // Initialize game when DOM is ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
-                new ARGame();
+                try {
+                    new ARGame();
+                } catch (error) {
+                    console.error('Failed to initialize ARGame:', error);
+                    document.getElementById('errorMessage').textContent = 'Помилка ініціалізації гри: ' + error.message;
+                    document.getElementById('errorScreen').classList.add('visible');
+                    document.getElementById('loadingScreen').style.display = 'none';
+                }
             });
         } else {
-            new ARGame();
+            try {
+                new ARGame();
+            } catch (error) {
+                console.error('Failed to initialize ARGame:', error);
+                document.getElementById('errorMessage').textContent = 'Помилка ініціалізації гри: ' + error.message;
+                document.getElementById('errorScreen').classList.add('visible');
+                document.getElementById('loadingScreen').style.display = 'none';
+            }
         }
     </script>
 </body>
