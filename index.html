@@ -169,22 +169,22 @@
 
   <!-- HUD: Play/Stop/Buttons -->
   <div class="hud" role="toolbar" aria-label="controls">
-    <button id="btnPlay" class="btn small" title="Play video">▶ Play</button>
-    <button id="btnStop" class="btn small" title="Stop video">⏸ Stop</button>
+    <button type="button" id="btnPlay" class="btn small" title="Play video">▶ Play</button>
+    <button type="button" id="btnStop" class="btn small" title="Stop video">⏸ Stop</button>
 
     <div style="width:8px"></div>
 
-    <button id="btnGame1" class="btn" title="Гра 1: Love Match">🎮 Гра 1</button>
-    <button id="btnGame2" class="btn" title="Гра 2: Славочка-пілот">🎮 Гра 2</button>
+    <button type="button" id="btnGame1" class="btn" title="Гра 1: Love Match">🎮 Гра 1</button>
+    <button type="button" id="btnGame2" class="btn" title="Гра 2: Славочка-пілот">🎮 Гра 2</button>
   </div>
 
   <!-- Center menu -->
   <div id="menu" class="menu" aria-hidden="true">
     <h3>Оберіть гру</h3>
-    <button id="menuGame1" class="btn small" aria-label="Гра Love Match">❤️🪽 Love Match</button>
-    <button id="menuGame2" class="btn small" aria-label="Гра Аня надає крила">🪽 Аня </button>
+    <button type="button" id="menuGame1" class="btn small" aria-label="Гра Love Match">❤️🪽 Love Match</button>
+    <button type="button" id="menuGame2" class="btn small" aria-label="Гра Аня надає крила">🪽 Аня </button>
     <div style="height:6px"></div>
-    <button id="menuBack" class="btn small">Повернутися до AR</button>
+    <button type="button" id="menuBack" class="btn small">Повернутися до AR</button>
   </div>
 
   <!-- MindAR scene -->
@@ -226,17 +226,33 @@
 
       <div style="height:12px"></div>
       <div style="display:flex; gap:10px; justify-content:center;">
-        <button id="btnRestart" class="btn small">Перезапустити</button>
-        <button id="btnBackToAR" class="btn small">Повернутися до AR</button>
+        <button type="button" id="btnRestart" class="btn small">Перезапустити</button>
+        <button type="button" id="btnBackToAR" class="btn small">Повернутися до AR</button>
       </div>
     </div>
   </div>
 
   <!-- Підказка про маркер -->
-  <div id="markerHint">Направте камеру на фото 🪽</div>
+  <div id="markerHint" role="alert" aria-live="polite">Направте камеру на фото 🪽</div>
 
   <!-- Scripts -->
   <script>
+    // Поліфіл для Math.hypot
+    if (!Math.hypot) {
+      Math.hypot = function(x, y) {
+        return Math.sqrt(x * x + y * y);
+      };
+    }
+
+    // Функція debounce
+    function debounce(fn, ms) {
+      let timer;
+      return function (...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), ms);
+      };
+    }
+
     // ---- Controls references ----
     const videoEl = document.getElementById('video1');
     const btnPlay = document.getElementById('btnPlay');
@@ -345,7 +361,14 @@
 
       // Якщо відео вже має бути включеним — запускаємо
       if (!videoEl.paused && !videoEl.ended) {
-        videoEl.play().catch(() => {});
+        if (videoEl.readyState >= 2) {
+          videoEl.play().catch((e) => {
+            console.warn('Не вдалося відтворити відео автоматично:', e);
+            markerHint.textContent = 'Натисніть Play для відтворення';
+            markerHint.style.display = 'block';
+            setTimeout(() => { markerHint.style.display = 'none'; }, 3000);
+          });
+        }
       }
 
       hideMenu();
@@ -358,6 +381,12 @@
       }
       videoPlane.setAttribute('visible', 'false');
       hideMenu();
+    });
+
+    scene.addEventListener('arError', (ev) => {
+      console.error('Помилка ініціалізації AR:', ev.detail);
+      markerHint.textContent = 'Не вдалося запустити AR. Перевірте доступ до камери.';
+      markerHint.style.display = 'block';
     });
 
     menuBack.addEventListener('click', ()=> {
@@ -424,7 +453,8 @@
       gameCanvas.width = Math.round(maxWidth * ratio);
       gameCanvas.height = Math.round(finalHeight * ratio);
     }
-    window.addEventListener('resize', fitCanvas);
+    window.addEventListener('resize', debounce(fitCanvas, 100));
+    window.addEventListener('orientationchange', debounce(fitCanvas, 100));
     fitCanvas();
 
     /* ----------------- Game 1: Love Match ----------------- */
@@ -491,6 +521,8 @@
         if (score >= 8) {
           clearInterval(appearTimer);
           gameCanvas.removeEventListener('pointerdown', onTap);
+          gameCanvas.removeEventListener('touchstart', onTap);
+          gameCanvas.removeEventListener('mousedown', onTap);
           cancelAnimationFrame(gameLoopHandle);
           currentEmoji = null;
           showLoveVictory();
@@ -498,6 +530,8 @@
       }
 
       gameCanvas.addEventListener('pointerdown', onTap);
+      gameCanvas.addEventListener('touchstart', onTap);
+      gameCanvas.addEventListener('mousedown', onTap);
 
       function showLoveVictory(){
         const ctx = gameCanvas.getContext('2d');
@@ -516,6 +550,8 @@
       gameOverlay._cleanup = function(){
         clearInterval(appearTimer);
         gameCanvas.removeEventListener('pointerdown', onTap);
+        gameCanvas.removeEventListener('touchstart', onTap);
+        gameCanvas.removeEventListener('mousedown', onTap);
       };
     }
 
@@ -628,9 +664,13 @@
       }
 
       gameCanvas.addEventListener('pointerdown', onTap);
+      gameCanvas.addEventListener('touchstart', onTap);
+      gameCanvas.addEventListener('mousedown', onTap);
 
       function endPilot(){
         gameCanvas.removeEventListener('pointerdown', onTap);
+        gameCanvas.removeEventListener('touchstart', onTap);
+        gameCanvas.removeEventListener('mousedown', onTap);
         cancelAnimationFrame(gameLoopHandle);
         if (caught >= requiredToWin) {
           showPilotVictory();
@@ -660,6 +700,8 @@
         clearInterval(pilotTimerHandle);
         pilotTimerHandle = null;
         gameCanvas.removeEventListener('pointerdown', onTap);
+        gameCanvas.removeEventListener('touchstart', onTap);
+        gameCanvas.removeEventListener('mousedown', onTap);
       };
     }
 
@@ -680,4 +722,3 @@
   </script>
 </body>
 </html>
-
