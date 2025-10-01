@@ -115,6 +115,49 @@
             z-index: 30;
             display: block;
         }
+
+        /* Кнопки контролю відео */
+        .video-controls {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 35;
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+        }
+
+        .video-btn {
+            background: rgba(212, 175, 55, 0.8);
+            color: #000;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-family: Inter, sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .video-btn:hover {
+            background: rgba(212, 175, 55, 1);
+            transform: scale(1.05);
+        }
+
+        .video-btn:active {
+            transform: scale(0.95);
+        }
+
+        .sound-btn {
+            background: rgba(255, 255, 255, 0.8);
+            color: #000;
+        }
+
+        .sound-btn.on {
+            background: rgba(212, 175, 55, 0.9);
+        }
     </style>
 </head>
 <body>
@@ -128,14 +171,14 @@
         device-orientation-permission-ui="enabled: false">
         
         <a-assets>
-            <!-- ВАЖЛИВО: додай muted! -->
+            <!-- Відео без звуку за замовчуванням -->
             <video id="video1" src="video1.mp4" muted playsinline webkit-playsinline preload="auto" loop="false"></video>
         </a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0">
-            <!-- ЗМІНА: прозорий матеріал для відео -->
+            <!-- Прозорий матеріал для відео -->
             <a-plane id="videoPlane" position="0 0 0" width="0.85" height="1.5" 
                      material="shader: flat; src: #video1; transparent: true; opacity: 1;"
                      visible="false"></a-plane>
@@ -152,6 +195,13 @@
     </div>
     <div class="feedback" id="feedback"></div>
     <div class="victory" id="victory"></div>
+    
+    <!-- Кнопки контролю відео -->
+    <div class="video-controls" id="videoControls" style="display:none;">
+        <button class="video-btn" id="replayBtn">▶️ Ще раз</button>
+        <button class="video-btn sound-btn" id="soundBtn">🔇 Увімк. звук</button>
+    </div>
+
     <div id="markerHint">Направте камеру на фото 🪽</div>
 
     <script>
@@ -165,6 +215,9 @@
         const feedbackEl = document.getElementById('feedback');
         const victoryEl = document.getElementById('victory');
         const markerHint = document.getElementById('markerHint');
+        const videoControls = document.getElementById('videoControls');
+        const replayBtn = document.getElementById('replayBtn');
+        const soundBtn = document.getElementById('soundBtn');
 
         // Налаштування
         let isMarkerFound = false;
@@ -173,6 +226,7 @@
         let fallingItems = [];
         let gameActive = false;
         let animationId = null;
+        let soundEnabled = false;
 
         // Масштаб canvas
         function resizeCanvas() {
@@ -181,6 +235,34 @@
         }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
+
+        // Керування звуком
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            videoEl.muted = !soundEnabled;
+            
+            if (soundEnabled) {
+                soundBtn.textContent = '🔊 Вимк. звук';
+                soundBtn.classList.add('on');
+                showFeedback('Звук увімкнено 🔊', true);
+            } else {
+                soundBtn.textContent = '🔇 Увімк. звук';
+                soundBtn.classList.remove('on');
+                showFeedback('Звук вимкнено 🔇', false);
+            }
+        }
+
+        // Перегравітування відео
+        function replayVideo() {
+            if (videoEl.paused) {
+                videoEl.play().catch(e => console.log("Play error:", e));
+                showFeedback('Відео програється ▶️', true);
+            } else {
+                videoEl.currentTime = 0;
+                videoEl.play().catch(e => console.log("Play error:", e));
+                showFeedback('Відео перезапущено 🔄', true);
+            }
+        }
 
         // Показати підказку
         function showHint(text, time = 3000) {
@@ -194,7 +276,7 @@
             feedbackEl.textContent = text;
             feedbackEl.style.color = isGood ? '#d4af37' : '#fff';
             feedbackEl.style.opacity = '1';
-            setTimeout(() => feedbackEl.style.opacity = '0', 800);
+            setTimeout(() => feedbackEl.style.opacity = '0', 1500);
         }
 
         // Створити елемент
@@ -209,7 +291,6 @@
                 speed: 1 + Math.random() * 2,
                 emoji: emoji,
                 isWing: emoji === '🪽',
-                // Додаємо ID для кращого відстеження
                 id: Date.now() + Math.random()
             });
         }
@@ -218,33 +299,27 @@
         function update() {
             if (!gameActive) return;
 
-            // Очистити canvas прозорим кольором
             ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
 
-            // Оновити елементи
             for (let i = fallingItems.length - 1; i >= 0; i--) {
                 const item = fallingItems[i];
                 item.y += item.speed;
 
-                // Малюємо
                 ctx.font = `${item.size}px sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(item.emoji, item.x, item.y);
 
-                // Видалити, якщо вийшов за межі
                 if (item.y > gameCanvas.height + 50) {
                     fallingItems.splice(i, 1);
                 }
             }
 
-            // Спавн кожні 800 мс
             if (Math.random() < 0.02) spawnItem();
-
             animationId = requestAnimationFrame(update);
         }
 
-        // ПОЛІПШЕНА обробка дотику
+        // Обробка дотику
         gameCanvas.addEventListener('pointerdown', (e) => {
             if (!gameActive) return;
             
@@ -257,16 +332,12 @@
 
             let hit = false;
             
-            // Перевіряємо знизу вгору (останні додані елементи першими)
             for (let i = fallingItems.length - 1; i >= 0; i--) {
                 const item = fallingItems[i];
-                
-                // Більш точна перевірка колізії для emoji
                 const dx = x - item.x;
                 const dy = y - item.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                // Радіус для кліку трохи більший ніж розмір
                 if (distance < item.size * 0.8) {
                     hit = true;
                     const isWing = item.isWing;
@@ -282,11 +353,10 @@
                     } else {
                         showFeedback('Ой, ще без крил 😅', false);
                     }
-                    break; // Зупиняємо після першого влучення
+                    break;
                 }
             }
             
-            // Якщо нічого не влучили
             if (!hit) {
                 showFeedback('Мімо! 👆', false);
             }
@@ -299,9 +369,9 @@
             fallingItems = [];
             scoreEl.textContent = `Крила: ${score}/${TARGET}`;
             hud.style.display = 'block';
+            videoControls.style.display = 'flex';
             victoryEl.style.display = 'none';
             update();
-            // Перший елемент
             setTimeout(spawnItem, 500);
         }
 
@@ -313,16 +383,15 @@
                 victoryEl.style.display = 'block';
                 setTimeout(() => {
                     victoryEl.style.display = 'none';
-                    startGame(); // нова гра
+                    startGame();
                 }, 3000);
             }
         }
 
-        // --- Події AR ---
+        // Події AR
         const scene = document.querySelector('a-scene');
 
         scene.addEventListener('renderstart', () => {
-            // Ховаємо лоадер, якщо є
             const loader = document.querySelector('.arjs-loader');
             if (loader) loader.style.display = 'none';
         });
@@ -332,7 +401,7 @@
             markerHint.style.display = 'none';
             videoPlane.setAttribute('visible', 'true');
             videoEl.play().catch(e => console.log("Play error:", e));
-            startGame(); // ✨ гра починається!
+            startGame();
         });
 
         scene.addEventListener('targetLost', () => {
@@ -342,17 +411,27 @@
             gameActive = false;
             if (animationId) cancelAnimationFrame(animationId);
             hud.style.display = 'none';
+            videoControls.style.display = 'none';
             victoryEl.style.display = 'none';
             fallingItems = [];
         });
 
+        // Обробники кнопок
+        replayBtn.addEventListener('click', replayVideo);
+        soundBtn.addEventListener('click', toggleSound);
+
         // Початкова підказка
         setTimeout(() => markerHint.style.display = 'none', 4000);
         
-        // Додаткова перевірка для мобільних пристроїв
+        // Для мобільних пристроїв
         gameCanvas.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // Запобігаємо скролу
+            e.preventDefault();
         }, { passive: false });
+
+        // Коли відео закінчується - показуємо підказку
+        videoEl.addEventListener('ended', () => {
+            showFeedback('Відео завершено! Можете переглянути ще раз ▶️', true);
+        });
     </script>
 </body>
 </html>
