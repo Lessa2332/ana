@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
-  <title>Аня,з Днем Народження !</title>
+  <title>Аня надає крила — AR привітання</title>
 
   <!-- Шрифт Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -113,21 +113,15 @@
       color:var(--gold);
       font-weight:700;
     }
-    .back-btn {
-      position: fixed;
-      left: 12px;
-      top: 12px;
-      z-index: 80;
-    }
 
-    /* Canvas style */
+    /* Canvas style — прозорий фон! */
     canvas#gameCanvas {
       width:100%;
       height: 70vh;
       border-radius:10px;
-      background: linear-gradient(180deg,#060606,#101010);
+      background: transparent;
       box-shadow: 0 8px 30px rgba(0,0,0,0.6);
-      touch-action: none; /* замість manipulation */
+      touch-action: none;
     }
 
     /* Small gold label */
@@ -154,6 +148,21 @@
       canvas#gameCanvas { height:62vh; }
     }
 
+    /* Повідомлення про маркер */
+    #markerHint {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      color: var(--gold);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      text-align: center;
+      z-index: 30;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -169,7 +178,7 @@
     <button id="btnGame2" class="btn" title="Гра 2: Славочка-пілот">🎮 Гра 2</button>
   </div>
 
-  <!-- Center menu (shows after video ends or can be toggled) -->
+  <!-- Center menu -->
   <div id="menu" class="menu" aria-hidden="true">
     <h3>Оберіть гру</h3>
     <button id="menuGame1" class="btn small" aria-label="Гра Love Match">❤️🪽 Love Match</button>
@@ -187,30 +196,23 @@
     device-orientation-permission-ui="enabled: true">
 
     <a-assets>
-      <!-- video file (поклади video1.mp4 поруч із index.html) -->
       <video id="video1" src="video1.mp4" muted crossorigin="anonymous" playsinline webkit-playsinline preload="auto" loop="false"></video>
     </a-assets>
 
-    <!-- camera -->
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <!-- marker target: відео поверх маркера -->
     <a-entity mindar-image-target="targetIndex: 0">
+      <!-- Відео приховано спочатку -->
+      <a-plane id="videoPlane" position="0 0 0" rotation="0 0 0" width="1.5" height="0.85" material="shader: flat; src: #video1; transparent: false; opacity: 1" visible="false"></a-plane>
 
-      <!-- чорна площина з відео (розмір під маркер) -->
-      <a-plane id="videoPlane" position="0 0 0" rotation="0 0 0" width="1.5" height="0.85" material="shader: flat; src: #video1; transparent: false; opacity: 1" visible="true">
-      </a-plane>
-
-      <!-- декоративні золоті рамки/логотипи (можна розширити) -->
       <a-entity position="0 0 -0.01">
         <a-ring radius-inner="0.8" radius-outer="0.82" rotation="-90 0 0" color="#d4af37" visible="false" id="goldRing"></a-ring>
       </a-entity>
-
     </a-entity>
 
   </a-scene>
 
-  <!-- Game overlay (single element reused for both games) -->
+  <!-- Game overlay -->
   <div id="gameOverlay" class="game-overlay" role="dialog" aria-modal="true">
     <div class="game-ui">
       <div class="game-top">
@@ -229,6 +231,9 @@
       </div>
     </div>
   </div>
+
+  <!-- Підказка про маркер -->
+  <div id="markerHint">Направте камеру на маркер 🪽</div>
 
   <!-- Scripts -->
   <script>
@@ -250,6 +255,11 @@
     const victoryText = document.getElementById('victoryText');
     const btnBackToAR = document.getElementById('btnBackToAR');
     const btnRestart = document.getElementById('btnRestart');
+    const markerHint = document.getElementById('markerHint');
+    const videoPlane = document.getElementById('videoPlane');
+
+    // Стан AR
+    let isMarkerFound = false;
 
     // Обробка помилки завантаження відео
     videoEl.addEventListener('error', () => {
@@ -257,9 +267,7 @@
       alert('Відео не знайдено. Переконайтеся, що файл video1.mp4 знаходиться поруч із цим HTML-файлом.');
     });
 
-    // For mobile autoplay gestures: user must interact to allow audio play.
     function ensurePlayAllowed() {
-      // try to play and immediately pause to unlock audio
       const p = videoEl.play();
       if (p && p.then) {
         p.then(()=> {
@@ -268,64 +276,94 @@
       }
     }
 
-    // Hook play/stop to video element
+    // Контроль відтворення
     btnPlay.addEventListener('click', ()=> {
-      videoEl.play().catch(()=>{ /* play might be blocked until user gesture */ });
-    });
-    btnStop.addEventListener('click', ()=> {
-      videoEl.pause();
-      videoEl.currentTime = 0;
-      showMenu(); // show menu when stopped
+      if (isMarkerFound) {
+        videoEl.play().catch(()=>{ /* play might be blocked until user gesture */ });
+      } else {
+        markerHint.style.display = 'block';
+        setTimeout(() => { markerHint.style.display = 'none'; }, 3000);
+      }
     });
 
-    // Show menu overlay
+    btnStop.addEventListener('click', ()=> {
+      if (isMarkerFound) {
+        videoEl.pause();
+        videoEl.currentTime = 0;
+        showMenu();
+      } else {
+        markerHint.style.display = 'block';
+        setTimeout(() => { markerHint.style.display = 'none'; }, 3000);
+      }
+    });
+
+    // Гри доступні тільки після AR
+    function checkARAndOpenGame(name) {
+      if (!isMarkerFound) {
+        markerHint.style.display = 'block';
+        setTimeout(() => { markerHint.style.display = 'none'; }, 3000);
+        return;
+      }
+      openGame(name);
+    }
+
+    btnGame1.addEventListener('click', ()=> checkARAndOpenGame('love'));
+    btnGame2.addEventListener('click', ()=> checkARAndOpenGame('pilot'));
+    menuGame1.addEventListener('click', ()=> checkARAndOpenGame('love'));
+    menuGame2.addEventListener('click', ()=> checkARAndOpenGame('pilot'));
+
     function showMenu(){
-      menu.style.display = 'flex';
-      menu.setAttribute('aria-hidden','false');
+      if (isMarkerFound) {
+        menu.style.display = 'flex';
+        menu.setAttribute('aria-hidden','false');
+      }
     }
     function hideMenu(){
       menu.style.display = 'none';
       menu.setAttribute('aria-hidden','true');
     }
 
-    // MindAR events: show menu after video ended
     videoEl.addEventListener('ended', ()=> {
-      showMenu();
+      if (isMarkerFound) showMenu();
     });
 
-    // When marker is found: make sure video plane visible; do not auto-play (user control)
     const scene = document.querySelector('a-scene');
+
     scene.addEventListener('renderstart', ()=> {
-      // unlock audio attempts
       ensurePlayAllowed();
     });
 
     scene.addEventListener('targetFound', (ev)=> {
-      // marker found: show a small gold ring animation briefly
+      isMarkerFound = true;
+      markerHint.style.display = 'none';
+
       const ring = document.getElementById('goldRing');
       ring.setAttribute('visible', 'true');
       setTimeout(()=> ring.setAttribute('visible','false'), 900);
-      // hide menu when marker found
+
+      videoPlane.setAttribute('visible', 'true');
+
+      // Якщо відео вже має бути включеним — запускаємо
+      if (!videoEl.paused && !videoEl.ended) {
+        videoEl.play().catch(() => {});
+      }
+
       hideMenu();
     });
 
     scene.addEventListener('targetLost', (ev)=> {
-      // pause video when marker lost to avoid playing in background
+      isMarkerFound = false;
       if (!videoEl.paused) {
         videoEl.pause();
       }
-    });
-
-    // Buttons to open games
-    btnGame1.addEventListener('click', ()=> openGame('love'));
-    btnGame2.addEventListener('click', ()=> openGame('pilot'));
-    menuGame1.addEventListener('click', ()=> openGame('love'));
-    menuGame2.addEventListener('click', ()=> openGame('pilot'));
-    menuBack.addEventListener('click', ()=> {
+      videoPlane.setAttribute('visible', 'false');
       hideMenu();
     });
 
-    // Back to AR from in-game UI
+    menuBack.addEventListener('click', ()=> {
+      if (isMarkerFound) hideMenu();
+    });
+
     btnBackToAR.addEventListener('click', closeGame);
     btnRestart.addEventListener('click', ()=> {
       if (currentGame === 'love') startLoveMatch();
@@ -339,7 +377,7 @@
     let pilotRemaining = 60;
 
     function openGame(name) {
-      // Pause video and show game overlay
+      if (!isMarkerFound) return;
       if (!videoEl.paused) {
         videoEl.pause();
       }
@@ -357,30 +395,27 @@
     }
 
     function closeGame(){
-      // clear loop
+      if (gameOverlay._cleanup) {
+        try { gameOverlay._cleanup(); } catch(e) {}
+        gameOverlay._cleanup = null;
+      }
       stopAllGameLoops();
       gameOverlay.style.display = 'none';
       currentGame = null;
       victoryText.style.display = 'none';
-      // resume AR video paused at 0
-      // do not auto-play; user can Press Play
     }
 
     function stopAllGameLoops(){
       if (gameLoopHandle) { cancelAnimationFrame(gameLoopHandle); gameLoopHandle = null; }
       if (pilotTimerHandle) { clearInterval(pilotTimerHandle); pilotTimerHandle = null; }
-      // clear canvas
       const ctx = gameCanvas.getContext('2d');
       ctx && ctx.clearRect(0,0,gameCanvas.width,gameCanvas.height);
     }
 
-    // adjust canvas size
     function fitCanvas(){
       const ratio = window.devicePixelRatio || 1;
       const maxWidth = Math.min(window.innerWidth - 40, 420);
       const maxHeight = window.innerHeight * 0.62;
-
-      // Зберігаємо пропорції 16:9
       const idealHeight = maxWidth * 9 / 16;
       const finalHeight = Math.min(idealHeight, maxHeight);
 
@@ -393,36 +428,27 @@
     fitCanvas();
 
     /* ----------------- Game 1: Love Match ----------------- */
-    // Mechanics:
-    // sequence player must tap: heart then wing then heart then wing ... (repeat)
-    // we'll show a stream of emojis one by one, user must tap when the correct one appears.
     function startLoveMatch(){
       stopAllGameLoops();
       fitCanvas();
       const ctx = gameCanvas.getContext('2d');
-      const sequence = ['❤️','🪽']; // alternating
+      const sequence = ['❤️','🪽'];
       let step = 0;
       let score = 0;
-      let running = true;
       let currentEmoji = null;
-      let appearInterval = 900; // ms
+      let appearInterval = 900;
 
-      gameTimer.textContent = ''; // no timer for love match
+      gameTimer.textContent = '';
 
-      // draw frame
       function draw(){
         ctx.clearRect(0,0,gameCanvas.width, gameCanvas.height);
-        // background subtle
-        ctx.fillStyle = '#050505';
-        ctx.fillRect(0,0,gameCanvas.width,gameCanvas.height);
+        // Прозорий фон — нічого не малюємо!
 
-        // emoji in center
         ctx.font = Math.round(gameCanvas.height * 0.35) + 'px serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = '#fff';
         if (currentEmoji) {
-          // gold outline if correct
           ctx.shadowColor = 'rgba(212,175,55,0.8)';
           ctx.shadowBlur = 18;
           ctx.fillText(currentEmoji, gameCanvas.width/2, gameCanvas.height/2);
@@ -431,7 +457,6 @@
           ctx.fillText('Готуйся...', gameCanvas.width/2, gameCanvas.height/2);
         }
 
-        // score
         ctx.font = Math.round(gameCanvas.height*0.05) + 'px sans-serif';
         ctx.fillStyle = '#d4af37';
         ctx.fillText('Score: ' + score, gameCanvas.width*0.5, gameCanvas.height*0.92);
@@ -441,11 +466,8 @@
 
       draw();
 
-      // appear cycle
       let appearTimer = setInterval(()=> {
-        // choose random emoji: either heart or wing or distractors
         const distractors = ['🎂','🍷','🌹','😂','🎁','🐱','✨'];
-        // 60% chance to show one of sequence targets, 40% distractor
         if (Math.random() < 0.60) {
           currentEmoji = sequence[step % sequence.length];
         } else {
@@ -453,32 +475,20 @@
         }
       }, appearInterval);
 
-      // handle taps
       function onTap(e){
-        // get tap coordinates relative to canvas
-        const rect = gameCanvas.getBoundingClientRect();
-        // user tapped canvas: check currentEmoji
         if (!currentEmoji) return;
         const expected = sequence[step % sequence.length];
         if (currentEmoji === expected) {
-          // correct
           score += 1;
           step += 1;
-          // small visual flash: set currentEmoji to trophy for a beat
-          const prev = currentEmoji;
           currentEmoji = '✨';
           setTimeout(()=> { currentEmoji = null; }, 220);
         } else {
-          // incorrect: small penalty
           score = Math.max(0, score-1);
-          // show red cross briefly
-          const prev = currentEmoji;
           currentEmoji = '❌';
           setTimeout(()=> { currentEmoji = null; }, 300);
         }
-        // check victory: if score >= 8 (for quick win)
         if (score >= 8) {
-          // show couple with wings
           clearInterval(appearTimer);
           gameCanvas.removeEventListener('pointerdown', onTap);
           cancelAnimationFrame(gameLoopHandle);
@@ -490,11 +500,9 @@
       gameCanvas.addEventListener('pointerdown', onTap);
 
       function showLoveVictory(){
-        // draw couple and gold text
         const ctx = gameCanvas.getContext('2d');
         ctx.clearRect(0,0,gameCanvas.width,gameCanvas.height);
-        ctx.fillStyle = '#030303';
-        ctx.fillRect(0,0,gameCanvas.width,gameCanvas.height);
+        // Прозорий фон — нічого не малюємо!
         ctx.font = Math.round(gameCanvas.height*0.26) + 'px serif';
         ctx.textAlign = 'center';
         ctx.fillStyle = '#d4af37';
@@ -505,9 +513,6 @@
         victoryText.textContent = 'Аня надає крила Славочку 💕';
       }
 
-      // cleanup on leaving
-      gameLoopHandle = gameLoopHandle; // already set
-      // store cleanup closure
       gameOverlay._cleanup = function(){
         clearInterval(appearTimer);
         gameCanvas.removeEventListener('pointerdown', onTap);
@@ -521,16 +526,16 @@
       const ctx = gameCanvas.getContext('2d');
       gameTimer.textContent = '60s';
       pilotRemaining = 60;
-      let pilotY = gameCanvas.height * 0.84; // bottom
+      let pilotY = gameCanvas.height * 0.84;
       let pilotX = gameCanvas.width * 0.12;
-      let speedUp = -18; // upward delta when catching wing
+      let speedUp = -18;
       let gravity = 2.2;
       let vy = 0;
       let caught = 0;
-      let requiredToWin = 8; // target wings to trigger "Поцілуй Аню"
-      let fallingEmojis = []; // {emoji, x, y, size, vy}
+      let requiredToWin = 8;
+      let fallingEmojis = [];
       const allEmojis = ['🪽','🎂','🍷','🐱','🌹','🎁','✨','💍','🍾','🎉','💼','📱','🌟','🕶️','🍫'];
-      // spawn up to 15 unique (or repeating) emojis
+
       function spawnEmoji(){
         if (fallingEmojis.length >= 8) return;
         const e = allEmojis[Math.floor(Math.random()*allEmojis.length)];
@@ -539,50 +544,38 @@
         fallingEmojis.push({ emoji: e, x: x, y: -size, size: size, vy: Math.random()*1.2 + 0.8});
       }
 
-      // initial spawn several
       for (let i=0;i<8;i++) spawnEmoji();
 
-      // draw loop
       function draw(){
         ctx.clearRect(0,0,gameCanvas.width, gameCanvas.height);
-        // BG
-        ctx.fillStyle = '#040404';
-        ctx.fillRect(0,0,gameCanvas.width, gameCanvas.height);
+        // Прозорий фон — нічого не малюємо!
 
-        // draw falling emojis
         ctx.font = '40px serif';
         for (let i=fallingEmojis.length-1;i>=0;i--){
           const f = fallingEmojis[i];
           f.y += f.vy * 1.6;
-          // draw
           ctx.font = Math.round(f.size) + 'px serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText(f.emoji, f.x, f.y + f.size*0.5);
-          // remove if off screen
           if (f.y > gameCanvas.height + 80) {
             fallingEmojis.splice(i,1);
           }
         }
 
-        // spawn occasionally
         if (Math.random() < 0.04) spawnEmoji();
 
-        // update pilot physics
         vy += gravity;
         pilotY += vy;
-        // floor bound
         const floorY = gameCanvas.height * 0.84;
         if (pilotY > floorY) { pilotY = floorY; vy = 0; }
 
-        // draw pilot (emoji)
         const pilotSize = Math.round(gameCanvas.height*0.10);
         ctx.font = pilotSize + 'px serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('👨', pilotX, pilotY);
 
-        // draw score
         ctx.font = Math.round(gameCanvas.height*0.045) + 'px sans-serif';
         ctx.fillStyle = '#d4af37';
         ctx.fillText('Крила: ' + caught, gameCanvas.width*0.85, gameCanvas.height*0.08);
@@ -591,7 +584,6 @@
       }
       draw();
 
-      // timer tick
       gameTimer.textContent = pilotRemaining + 's';
       pilotTimerHandle = setInterval(()=> {
         pilotRemaining -= 1;
@@ -603,29 +595,23 @@
         }
       }, 1000);
 
-      // handle taps: detect which emoji tapped; if it's 🪽 => apply upward impulse
       function onTap(e){
         const rect = gameCanvas.getBoundingClientRect();
         const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
         const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
-        // find topmost emoji under tap
         for (let i = fallingEmojis.length-1; i >=0; i--){
           const f = fallingEmojis[i];
           const fx = f.x;
           const fy = f.y + f.size*0.5;
           const r = Math.max(f.size*0.6, 28);
           if (Math.hypot(x - fx, y - fy) < r) {
-            // tapped this emoji
             const tapped = f.emoji;
             fallingEmojis.splice(i,1);
             if (tapped === '🪽') {
-              // success
               caught += 1;
-              vy = speedUp; // impulse upward
-              // sparkle
+              vy = speedUp;
               flashText('+1 wing');
             } else {
-              // wrong tap -> small penalty: slight push down
               vy += 6;
               flashText('Не те!');
             }
@@ -646,12 +632,9 @@
       function endPilot(){
         gameCanvas.removeEventListener('pointerdown', onTap);
         cancelAnimationFrame(gameLoopHandle);
-        // victory check
         if (caught >= requiredToWin) {
-          // success: show kiss prompt
           showPilotVictory();
         } else {
-          // lose: show consolation
           victoryText.style.display = 'block';
           victoryText.style.color = '#fff';
           victoryText.textContent = 'Гра закінчилась — спробуй ще раз!';
@@ -659,10 +642,9 @@
       }
 
       function showPilotVictory(){
-        // show golden text "Привітай і поцілуй Аню"
-        ctx.clearRect(0,0,gameCanvas.width, gameCanvas.height);
-        ctx.fillStyle = '#030303';
-        ctx.fillRect(0,0,gameCanvas.width,gameCanvas.height);
+        const ctx = gameCanvas.getContext('2d');
+        ctx.clearRect(0,0,gameCanvas.width,gameCanvas.height);
+        // Прозорий фон — нічого не малюємо!
         ctx.font = Math.round(gameCanvas.height*0.22) + 'px serif';
         ctx.textAlign = 'center';
         ctx.fillStyle = '#d4af37';
@@ -671,10 +653,9 @@
         ctx.fillText('Поцілуй Аню', gameCanvas.width/2, gameCanvas.height*0.68);
         victoryText.style.display = 'block';
         victoryText.style.color = '#d4af37';
-        victoryText.textContent = 'Привітай і поцілуй Аню 😘';
+        victoryText.textContent = 'Поцілуй Аню 😘';
       }
 
-      // store cleanup
       gameOverlay._cleanup = function(){
         clearInterval(pilotTimerHandle);
         pilotTimerHandle = null;
@@ -682,39 +663,20 @@
       };
     }
 
-    // When closing or switching games, call cleanup
-    function closeGame(){
-      if (gameOverlay._cleanup) {
-        try { gameOverlay._cleanup(); } catch(e) {}
-        gameOverlay._cleanup = null;
-      }
-      stopAllGameLoops();
-      gameOverlay.style.display = 'none';
-      currentGame = null;
-      victoryText.style.display = 'none';
-    }
-
-    // init: hide menu until video ends or user stops
     hideMenu();
+    markerHint.style.display = 'block';
+    setTimeout(() => { markerHint.style.display = 'none'; }, 4000);
 
-    // accessibility / hint: if user taps video plane (A-Frame), toggle play
-    // We'll listen for clicks on the DOM video element as well
-    // But some platforms block direct A-Frame plane clicks; keep a fallback: clicking anywhere when marker visible toggles.
     document.addEventListener('visibilitychange', ()=> {
-      if (document.hidden) {
+      if (document.hidden && isMarkerFound) {
         if (!videoEl.paused) videoEl.pause();
       }
     });
 
-    // small UX: if user presses Play and marker not found, still play audio/video but plane will show when marker found
-    // ensure tapping viewport can start audio on mobile: initial gesture
     document.body.addEventListener('pointerdown', function _initAudioOnce(){
       ensurePlayAllowed();
       document.body.removeEventListener('pointerdown', _initAudioOnce);
     });
-
-    // end of script
   </script>
 </body>
 </html>
-
