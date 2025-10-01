@@ -348,6 +348,12 @@
       videoPlane.setAttribute('visible', 'false');
     });
 
+    // Після закінчення відео — кнопки знову активні
+    videoEl.addEventListener('ended', () => {
+      videoEl.currentTime = 0;
+      videoPlane.setAttribute('visible', 'false');
+    });
+
     btnBackToAR.addEventListener('click', closeGame);
     btnRestart.addEventListener('click', () => {
       startGame(currentLevel);
@@ -459,8 +465,10 @@
         ctx.textBaseline = 'middle';
         ctx.fillText('👨', pilotX, pilotY);
 
+        // Текст "Крила" тепер вміщується в ширину
         ctx.font = Math.round(gameCanvas.height*0.045) + 'px sans-serif';
         ctx.fillStyle = '#d4af37';
+        ctx.textAlign = 'right';
         ctx.fillText('Крила: ' + caught, gameCanvas.width*0.85, gameCanvas.height*0.08);
 
         gameLoopHandle = requestAnimationFrame(draw);
