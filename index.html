@@ -14,352 +14,356 @@
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        html, body {
-            height: 100%;
-            overflow: hidden;
-            background: #000;
-            font-family: 'Inter', sans-serif;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
-        }
+   <style>
+    * { 
+        margin: 0; 
+        padding: 0; 
+        box-sizing: border-box; 
+    }
 
-        /* Loading Screen */
-        .loading-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            color: #d4af37;
-        }
+    html, body {
+        height: 100%;
+        overflow: hidden;
+        background: transparent; /* 👈 ЧОРОНИЙ ФОН ПРИБРАНО! */
+        font-family: 'Inter', sans-serif;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
 
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(212, 175, 55, 0.3);
-            border-top: 4px solid #d4af37;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
+    /* Loading Screen — залишаємо чорним, бо він тимчасовий */
+    .loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #000; /* ✅ Залишаємо чорним — це лоадер */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+        color: #d4af37;
+    }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+    .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(212, 175, 55, 0.3);
+        border-top: 4px solid #d4af37;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+    }
 
-        /* AR Scene */
-        a-scene {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10;
-            opacity: 0;
-            transition: opacity 0.5s ease;
-        }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
 
-        a-scene.ready {
-            opacity: 1;
-        }
+    /* AR Scene — прозорий фон */
+    a-scene {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 10;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+        background: transparent; /* 👈 Гарантія прозорості */
+    }
 
-        /* Game Canvas */
-        #gameCanvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 20;
-            pointer-events: auto;
-            touch-action: none;
-        }
+    a-scene.ready {
+        opacity: 1;
+    }
 
-        /* HUD */
-        .hud {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 30;
-            text-align: center;
-            color: white;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
+    /* Game Canvas — без змін */
+    #gameCanvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 20;
+        pointer-events: auto;
+        touch-action: none;
+    }
 
-        .hud.visible {
-            opacity: 1;
-        }
+    /* HUD, Feedback, Victory — без змін */
 
-        .instructions {
-            background: rgba(0, 0, 0, 0.7);
-            padding: 8px 16px;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 16px;
-            margin-bottom: 8px;
-            backdrop-filter: blur(10px);
-        }
+    .hud {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 30;
+        text-align: center;
+        color: white;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
 
-        .score {
-            background: rgba(212, 175, 55, 0.9);
-            color: #000;
-            padding: 8px 20px;
-            border-radius: 12px;
-            font-weight: 800;
-            font-size: 18px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
+    .hud.visible {
+        opacity: 1;
+    }
 
-        /* Feedback Messages */
-        .feedback {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 24px;
-            font-weight: 800;
-            z-index: 40;
-            opacity: 0;
-            pointer-events: none;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
-            text-align: center;
-            transition: opacity 0.3s ease;
-            padding: 16px 24px;
-            border-radius: 16px;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(10px);
-            color: #d4af37;
-        }
+    .instructions {
+        background: rgba(0, 0, 0, 0.7);
+        padding: 8px 16px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 16px;
+        margin-bottom: 8px;
+        backdrop-filter: blur(10px);
+    }
 
-        .feedback.visible {
-            opacity: 1;
-        }
+    .score {
+        background: rgba(212, 175, 55, 0.9);
+        color: #000;
+        padding: 8px 20px;
+        border-radius: 12px;
+        font-weight: 800;
+        font-size: 18px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
 
-        /* Victory Screen */
-        .victory {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.95);
-            color: #d4af37;
-            padding: 32px;
-            border-radius: 24px;
-            font-weight: 800;
-            font-size: 28px;
-            text-align: center;
-            z-index: 50;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.5s ease;
-            backdrop-filter: blur(20px);
-            border: 2px solid #d4af37;
-            max-width: 90%;
-            box-shadow: 0 8px 32px rgba(212, 175, 55, 0.3);
-        }
+    .feedback {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 24px;
+        font-weight: 800;
+        z-index: 40;
+        opacity: 0;
+        pointer-events: none;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+        text-align: center;
+        transition: opacity 0.3s ease;
+        padding: 16px 24px;
+        border-radius: 16px;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(10px);
+        color: #d4af37;
+    }
 
-        .victory.visible {
-            opacity: 1;
-            pointer-events: auto;
-        }
+    .feedback.visible {
+        opacity: 1;
+    }
 
-        .victory-message {
-            margin-bottom: 20px;
-        }
+    .victory {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.95);
+        color: #d4af37;
+        padding: 32px;
+        border-radius: 24px;
+        font-weight: 800;
+        font-size: 28px;
+        text-align: center;
+        z-index: 50;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.5s ease;
+        backdrop-filter: blur(20px);
+        border: 2px solid #d4af37;
+        max-width: 90%;
+        box-shadow: 0 8px 32px rgba(212, 175, 55, 0.3);
+    }
 
-        .continue-btn {
-            background: #d4af37;
-            color: #000;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 12px;
-            font-family: 'Inter', sans-serif;
-            font-weight: 700;
-            font-size: 18px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 16px;
-        }
+    .victory.visible {
+        opacity: 1;
+        pointer-events: auto;
+    }
 
-        .continue-btn:hover {
-            background: #e6c550;
-            transform: scale(1.05);
-        }
+    .victory-message {
+        margin-bottom: 20px;
+    }
 
-        /* Marker Hint — завжди вище за кнопки */
-        #markerHint {
-            position: fixed;
-            bottom: 160px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: #d4af37;
-            padding: 12px 24px;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            text-align: center;
-            z-index: 30;
-            opacity: 1;
-            transition: opacity 0.3s ease;
-            backdrop-filter: blur(10px);
-            max-width: 90%;
-        }
+    .continue-btn {
+        background: #d4af37;
+        color: #000;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-family: 'Inter', sans-serif;
+        font-weight: 700;
+        font-size: 18px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 16px;
+    }
 
-        #markerHint.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
+    .continue-btn:hover {
+        background: #e6c550;
+        transform: scale(1.05);
+    }
 
-        /* Video Controls — ГАРАНТОВАНО ВИДИМІ */
+    /* Marker Hint — без змін */
+    #markerHint {
+        position: fixed;
+        bottom: calc(120px + env(safe-area-inset-bottom, 20px));
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: #d4af37;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        text-align: center;
+        z-index: 30;
+        opacity: 1;
+        transition: opacity 0.3s ease;
+        backdrop-filter: blur(10px);
+        max-width: 90%;
+    }
+
+    #markerHint.hidden {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    /* Video Controls — без змін */
+    .video-controls {
+        position: fixed;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 35;
+        display: flex;
+        gap: 16px;
+        pointer-events: auto;
+        padding: 0 20px;
+        width: 100%;
+        max-width: 400px;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        bottom: calc(80px + env(safe-area-inset-bottom, 20px));
+    }
+
+    @media (max-height: 700px) {
         .video-controls {
-            position: fixed;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 35;
-            display: flex;
-            gap: 16px;
-            pointer-events: auto;
-            padding: 0 20px;
-            width: 100%;
-            max-width: 400px;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            bottom: 100px;
+            bottom: calc(70px + env(safe-area-inset-bottom, 20px));
         }
+    }
 
-        @media (max-height: 700px) {
-            .video-controls {
-                bottom: 90px;
-            }
-        }
-
-        @media (max-height: 650px) {
-            .video-controls {
-                flex-direction: column;
-                align-items: center;
-                gap: 12px;
-                max-width: 300px;
-                bottom: 80px;
-            }
-            .video-btn {
-                width: 100%;
-                max-width: 280px;
-                padding: 14px;
-                font-size: 16px;
-            }
-            #markerHint {
-                bottom: 140px;
-            }
-        }
-
-        @media (max-height: 600px) {
-            .video-controls {
-                bottom: 70px;
-                gap: 10px;
-            }
-            .video-btn {
-                padding: 12px;
-                font-size: 15px;
-            }
-            #markerHint {
-                bottom: 130px;
-            }
-        }
-
-        .video-controls.visible {
-            opacity: 1;
-        }
-
-        .video-btn {
-            background: rgba(212, 175, 55, 0.95);
-            color: #000;
-            border: none;
-            padding: 14px 24px;
-            border-radius: 14px;
-            font-family: 'Inter', sans-serif;
-            font-weight: 700;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            min-width: 150px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .video-btn:hover {
-            background: rgba(212, 175, 55, 1);
-            transform: scale(1.05);
-        }
-
-        .video-btn:active {
-            transform: scale(0.95);
-        }
-
-        .sound-btn {
-            background: rgba(255, 255, 255, 0.9);
-        }
-
-        .sound-btn.on {
-            background: rgba(212, 175, 55, 0.95);
-        }
-
-        /* Error Screen */
-        .error-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            display: none;
+    @media (max-height: 650px) {
+        .video-controls {
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-            z-index: 200;
-            color: #fff;
-            text-align: center;
-            padding: 20px;
+            gap: 12px;
+            max-width: 300px;
+            bottom: calc(60px + env(safe-area-inset-bottom, 20px));
         }
-
-        .error-screen.visible {
-            display: flex;
-        }
-
-        .error-icon {
-            font-size: 48px;
-            margin-bottom: 20px;
-        }
-
-        .retry-btn {
-            background: #d4af37;
-            color: #000;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 12px;
-            font-family: 'Inter', sans-serif;
-            font-weight: 700;
+        .video-btn {
+            width: 100%;
+            max-width: 280px;
+            padding: 14px;
             font-size: 16px;
-            cursor: pointer;
-            margin-top: 20px;
         }
-    </style>
+        #markerHint {
+            bottom: calc(110px + env(safe-area-inset-bottom, 20px));
+        }
+    }
+
+    @media (max-height: 600px) {
+        .video-controls {
+            bottom: calc(50px + env(safe-area-inset-bottom, 20px));
+            gap: 10px;
+        }
+        .video-btn {
+            padding: 12px;
+            font-size: 15px;
+        }
+        #markerHint {
+            bottom: calc(100px + env(safe-area-inset-bottom, 20px));
+        }
+    }
+
+    .video-controls.visible {
+        opacity: 1;
+    }
+
+    .video-btn {
+        background: rgba(212, 175, 55, 0.95);
+        color: #000;
+        border: none;
+        padding: 14px 24px;
+        border-radius: 14px;
+        font-family: 'Inter', sans-serif;
+        font-weight: 700;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-width: 150px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .video-btn:hover {
+        background: rgba(212, 175, 55, 1);
+        transform: scale(1.05);
+    }
+
+    .video-btn:active {
+        transform: scale(0.95);
+    }
+
+    .sound-btn {
+        background: rgba(255, 255, 255, 0.9);
+    }
+
+    .sound-btn.on {
+        background: rgba(212, 175, 55, 0.95);
+    }
+
+    /* Error Screen — залишаємо чорним, бо це помилка */
+    .error-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #000;
+        display: none;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 200;
+        color: #fff;
+        text-align: center;
+        padding: 20px;
+    }
+
+    .error-screen.visible {
+        display: flex;
+    }
+
+    .error-icon {
+        font-size: 48px;
+        margin-bottom: 20px;
+    }
+
+    .retry-btn {
+        background: #d4af37;
+        color: #000;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-family: 'Inter', sans-serif;
+        font-weight: 700;
+        font-size: 16px;
+        cursor: pointer;
+        margin-top: 20px;
+    }
+</style>
 </head>
 <body>
     <!-- Loading Screen -->
@@ -391,7 +395,7 @@
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0">
-            <!-- Відео "у повітрі", збільшене в 2 рази, прозорий фон -->
+            <!-- Відео "у повітрі", збільшене в 2 рази -->
             <a-video
                 src="#video1"
                 width="1.7"
@@ -437,6 +441,7 @@
                 this.initializeElements();
                 this.setupGameState();
                 this.bindEvents();
+                this.adjustControlsForSafeArea(); // Викликаємо одразу
             }
 
             initializeElements() {
@@ -494,6 +499,13 @@
                 window.addEventListener('resize', () => this.throttledResize());
                 window.addEventListener('error', (e) => this.handleGlobalError(e));
 
+                // Додатково: слухаємо зміну visualViewport (Android)
+                if (window.visualViewport) {
+                    window.visualViewport.addEventListener('resize', () => {
+                        this.adjustControlsForSafeArea();
+                    });
+                }
+
                 this.gameCanvas.addEventListener('pointerdown', (e) => this.handleTap(e));
                 this.gameCanvas.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
 
@@ -510,6 +522,24 @@
                 this.scene.addEventListener('targetFound', () => this.handleTargetFound());
                 this.scene.addEventListener('targetLost', () => this.handleTargetLost());
                 this.scene.addEventListener('arError', (e) => this.handleARError(e));
+            }
+
+            // === НОВИЙ МЕТОД: АДАПТАЦІЯ ПІД ПАНЕЛЬ НАВІГАЦІЇ ===
+            adjustControlsForSafeArea() {
+                // Якщо підтримується visualViewport — використовуємо його
+                if (window.visualViewport) {
+                    const viewportHeight = window.visualViewport.height;
+                    const layoutHeight = window.innerHeight;
+                    const navBarHeight = Math.max(0, layoutHeight - viewportHeight);
+                    
+                    // Додаємо мінімум 20px + висоту панелі
+                    const safeBottom = 80 + navBarHeight;
+                    const hintBottom = 120 + navBarHeight;
+                    
+                    this.videoControls.style.bottom = `${safeBottom}px`;
+                    this.markerHint.style.bottom = `${hintBottom}px`;
+                }
+                // Якщо ні — CSS з env() вже обробить
             }
 
             resizeCanvas() {
@@ -719,4 +749,3 @@
     </script>
 </body>
 </html>
-
