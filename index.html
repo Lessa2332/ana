@@ -3,89 +3,31 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Аня - AR Гра</title>
-    
-    <!-- Preload critical resources -->
+    <title>Аня</title>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- A-Frame and MindAR with fallback -->
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
     <style>
-        * { 
-            margin: 0; 
-            padding: 0; 
-            box-sizing: border-box; 
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body {
             height: 100%;
             overflow: hidden;
             background: #000;
-            font-family: 'Inter', sans-serif;
+            font-family: Inter, sans-serif;
+            touch-action: none;
             -webkit-touch-callout: none;
             -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
             user-select: none;
-            touch-action: none;
         }
 
-        /* Loading Screen */
-        .loading-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            color: #d4af37;
-            transition: opacity 0.5s ease;
-        }
-
-        .loading-screen.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(212, 175, 55, 0.3);
-            border-top: 4px solid #d4af37;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-
-        .loading-progress {
-            width: 200px;
-            height: 4px;
-            background: rgba(212, 175, 55, 0.3);
-            border-radius: 2px;
-            margin-top: 20px;
-            overflow: hidden;
-        }
-
-        .loading-progress-bar {
-            height: 100%;
-            background: #d4af37;
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* AR Scene */
+        /* AR-сцена */
         a-scene {
             position: fixed;
             top: 0;
@@ -93,15 +35,9 @@
             width: 100%;
             height: 100%;
             z-index: 10;
-            opacity: 0;
-            transition: opacity 0.5s ease;
         }
 
-        a-scene.ready {
-            opacity: 1;
-        }
-
-        /* Game Canvas */
+        /* Прозорий canvas поверх AR */
         #gameCanvas {
             position: fixed;
             top: 0;
@@ -116,23 +52,16 @@
         /* HUD */
         .hud {
             position: fixed;
-            top: 20px;
+            top: env(safe-area-inset-top, 16px);
             left: 50%;
             transform: translateX(-50%);
             z-index: 30;
             text-align: center;
             color: white;
             pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s ease;
         }
-
-        .hud.visible {
-            opacity: 1;
-        }
-
         .instructions {
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0,0,0,0.7);
             padding: 8px 16px;
             border-radius: 12px;
             font-weight: 700;
@@ -140,264 +69,170 @@
             margin-bottom: 8px;
             backdrop-filter: blur(10px);
         }
-
         .score {
-            background: rgba(212, 175, 55, 0.9);
+            background: rgba(212, 175, 55, 0.85);
             color: #000;
-            padding: 8px 20px;
+            padding: 8px 18px;
             border-radius: 12px;
             font-weight: 800;
             font-size: 18px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
         }
 
-        /* Feedback Messages */
         .feedback {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 800;
             z-index: 40;
             opacity: 0;
             pointer-events: none;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+            text-shadow: 0 2px 8px rgba(0,0,0,0.9);
             text-align: center;
+            padding: 0 20px;
             transition: opacity 0.3s ease;
-            padding: 16px 24px;
-            border-radius: 16px;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(10px);
         }
 
-        .feedback.visible {
-            opacity: 1;
-        }
-
-        /* Victory Screen */
         .victory {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.95);
+            background: rgba(0,0,0,0.9);
             color: #d4af37;
-            padding: 32px;
-            border-radius: 24px;
+            padding: 24px;
+            border-radius: 20px;
             font-weight: 800;
-            font-size: 28px;
+            font-size: 24px;
             text-align: center;
             z-index: 50;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.5s ease;
-            backdrop-filter: blur(20px);
-            border: 2px solid #d4af37;
-            max-width: 90%;
-            box-shadow: 0 8px 32px rgba(212, 175, 55, 0.3);
+            display: none;
+            max-width: 85%;
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(212, 175, 55, 0.3);
         }
 
-        .victory.visible {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .victory-message {
-            margin-bottom: 20px;
-        }
-
-        .continue-btn {
-            background: #d4af37;
-            color: #000;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 12px;
-            font-family: 'Inter', sans-serif;
-            font-weight: 700;
-            font-size: 18px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 16px;
-        }
-
-        .continue-btn:hover {
-            background: #e6c550;
-            transform: scale(1.05);
-        }
-
-        /* Marker Hint */
         #markerHint {
             position: fixed;
-            bottom: 30px;
+            bottom: calc(20px + env(safe-area-inset-bottom, 0px));
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0,0,0,0.8);
             color: #d4af37;
-            padding: 12px 24px;
+            padding: 12px 20px;
             border-radius: 12px;
             font-size: 16px;
-            font-weight: 600;
             text-align: center;
             z-index: 30;
-            opacity: 1;
-            transition: opacity 0.3s ease;
+            display: block;
             backdrop-filter: blur(10px);
             max-width: 90%;
+            width: auto;
         }
 
-        #markerHint.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        /* Video Controls */
+        /* Кнопки контролю відео */
         .video-controls {
             position: fixed;
-            bottom: 100px;
+            bottom: calc(100px + env(safe-area-inset-bottom, 0px));
             left: 50%;
             transform: translateX(-50%);
             z-index: 35;
             display: flex;
-            gap: 16px;
+            gap: 15px;
             pointer-events: auto;
             padding: 0 20px;
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
             justify-content: center;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .video-controls.visible {
-            opacity: 1;
         }
 
         .video-btn {
             background: rgba(212, 175, 55, 0.95);
             color: #000;
             border: none;
-            padding: 14px 24px;
+            padding: 14px 22px;
             border-radius: 14px;
-            font-family: 'Inter', sans-serif;
+            font-family: Inter, sans-serif;
             font-weight: 700;
-            font-size: 16px;
+            font-size: 17px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             min-width: 150px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
-        }
-
-        .video-btn:hover {
-            background: rgba(212, 175, 55, 1);
-            transform: scale(1.05);
+            backdrop-filter: blur(10px);
         }
 
         .video-btn:active {
-            transform: scale(0.95);
+            transform: scale(0.92);
+            background: rgba(212, 175, 55, 1);
         }
 
         .sound-btn {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
+            color: #000;
         }
 
         .sound-btn.on {
             background: rgba(212, 175, 55, 0.95);
         }
 
-        /* Error Screen */
-        .error-screen {
+        /* Індикатор завантаження */
+        .loading {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 200;
-            color: #fff;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #d4af37;
+            font-size: 18px;
+            font-weight: 600;
+            z-index: 60;
             text-align: center;
+            background: rgba(0,0,0,0.8);
             padding: 20px;
-        }
-
-        .error-screen.visible {
-            display: flex;
-        }
-
-        .error-icon {
-            font-size: 48px;
-            margin-bottom: 20px;
-        }
-
-        .retry-btn {
-            background: #d4af37;
-            color: #000;
-            border: none;
-            padding: 12px 24px;
             border-radius: 12px;
-            font-family: 'Inter', sans-serif;
-            font-weight: 700;
-            font-size: 16px;
-            cursor: pointer;
-            margin-top: 20px;
-        }
-
-        /* Debug Info */
-        .debug-info {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            color: #00ff00;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-family: monospace;
-            z-index: 1000;
             display: none;
         }
 
-        /* Responsive Design */
+        /* Адаптація для різних екранів */
         @media (max-width: 480px) {
             .video-controls {
-                bottom: 90px;
+                bottom: calc(80px + env(safe-area-inset-bottom, 0px));
                 gap: 12px;
-                padding: 0 16px;
+                padding: 0 15px;
             }
             
             .video-btn {
-                padding: 16px 20px;
-                font-size: 15px;
+                padding: 16px 18px;
+                font-size: 16px;
                 min-width: 140px;
+                border-radius: 12px;
             }
             
             .hud {
-                top: 15px;
+                top: env(safe-area-inset-top, 12px);
             }
             
             .instructions {
-                font-size: 14px;
-                padding: 6px 12px;
+                font-size: 15px;
+                padding: 7px 14px;
             }
             
             .score {
-                font-size: 16px;
-                padding: 6px 16px;
+                font-size: 17px;
+                padding: 7px 16px;
             }
             
             .feedback {
                 font-size: 20px;
-                padding: 12px 20px;
             }
             
             .victory {
-                font-size: 24px;
-                padding: 24px;
+                font-size: 22px;
+                padding: 20px;
             }
         }
 
@@ -405,677 +240,478 @@
             .video-controls {
                 flex-direction: column;
                 align-items: center;
-                bottom: 80px;
+                bottom: calc(70px + env(safe-area-inset-bottom, 0px));
                 gap: 10px;
             }
             
             .video-btn {
-                width: 100%;
-                max-width: 280px;
-                padding: 14px;
+                width: 95%;
+                max-width: 220px;
+                padding: 15px;
+                font-size: 15px;
+            }
+            
+            #markerHint {
+                font-size: 15px;
+                padding: 10px 16px;
             }
         }
 
-        @media (min-height: 800px) {
+        /* Планшети */
+        @media (min-width: 768px) and (max-width: 1024px) {
             .video-controls {
                 bottom: 120px;
             }
+            
+            .video-btn {
+                padding: 16px 24px;
+                font-size: 18px;
+                min-width: 160px;
+            }
         }
 
-        /* High DPI Screens */
-        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-            .instructions, .score, .video-btn {
-                -webkit-font-smoothing: antialiased;
-            }
+        /* Запобігання виділенню */
+        .video-btn, .hud, .feedback, .victory {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
     </style>
 </head>
 <body>
-    <!-- Loading Screen -->
-    <div class="loading-screen" id="loadingScreen">
-        <div class="loading-spinner"></div>
-        <div>Завантаження AR...</div>
-        <div class="loading-progress">
-            <div class="loading-progress-bar" id="loadingProgress"></div>
-        </div>
-    </div>
 
-    <!-- Error Screen -->
-    <div class="error-screen" id="errorScreen">
-        <div class="error-icon">⚠️</div>
-        <div id="errorMessage">Сталася помилка</div>
-        <button class="retry-btn" id="retryBtn">Спробувати знову</button>
-    </div>
-
-    <!-- Debug Info -->
-    <div class="debug-info" id="debugInfo"></div>
-
-    <!-- AR Scene -->
+    <!-- AR-сцена -->
     <a-scene
-        mindar-image="imageTargetSrc: ./marker.mind; autoStart: false; uiLoading: no; uiError: no; filterMinCF: 0.0001; filterBeta: 0.0001;"
+        mindar-image="imageTargetSrc: https://lessa2332.github.io/ana/marker.mind; autoStart: true; uiLoading: no; uiError: no; uiScanning: no;"
         embedded
         color-space="sRGB"
         vr-mode-ui="enabled: false"
         device-orientation-permission-ui="enabled: false"
-        id="arScene">
+        renderer="antialias: true; alpha: true">
         
         <a-assets>
-            <video id="video1" src="./video1.mp4" muted playsinline webkit-playsinline preload="auto" loop crossorigin="anonymous"></video>
+            <video id="video1" src="video1.mp4" muted playsinline webkit-playsinline preload="auto" loop="false"></video>
         </a-assets>
 
-        <a-camera position="0 0 0" look-controls="enabled: false" id="camera"></a-camera>
+        <a-camera position="0 0 0" look-controls="enabled: false" wasd-controls="enabled: false"></a-camera>
 
-        <a-entity mindar-image-target="targetIndex: 0" id="target">
+        <a-entity mindar-image-target="targetIndex: 0">
             <a-plane id="videoPlane" position="0 0 0" width="0.85" height="1.5" 
                      material="shader: flat; src: #video1; transparent: true; opacity: 1;"
                      visible="false"></a-plane>
         </a-entity>
     </a-scene>
 
-    <!-- Game Canvas -->
+    <!-- Прозорий canvas для гри -->
     <canvas id="gameCanvas"></canvas>
 
-    <!-- HUD -->
-    <div class="hud" id="hud">
+    <!-- Інтерфейс -->
+    <div class="hud" id="hud" style="display:none;">
         <div class="instructions">Лови тільки крила 🪽</div>
         <div class="score" id="score">Крила: 0/10</div>
     </div>
-
-    <!-- Feedback -->
     <div class="feedback" id="feedback"></div>
-
-    <!-- Victory Screen -->
-    <div class="victory" id="victory">
-        <div class="victory-message">Аня надає крила! 💋</div>
-        <div>Ти зібрав усі крила!</div>
-        <button class="continue-btn" id="continueBtn">Грати ще раз</button>
+    <div class="victory" id="victory"></div>
+    
+    <!-- Кнопки контролю відео -->
+    <div class="video-controls" id="videoControls" style="display:none;">
+        <button class="video-btn" id="replayBtn">▶️ Ще раз</button>
+        <button class="video-btn sound-btn" id="soundBtn">🔇 Увімк. звук</button>
     </div>
 
-    <!-- Video Controls -->
-    <div class="video-controls" id="videoControls">
-        <button class="video-btn" id="replayBtn" aria-label="Відтворити відео ще раз">▶️ Ще раз</button>
-        <button class="video-btn sound-btn" id="soundBtn" aria-label="Увімкнути звук">🔇 Увімк. звук</button>
-    </div>
+    <!-- Індикатор завантаження -->
+    <div class="loading" id="loading">Завантаження...</div>
 
-    <!-- Marker Hint -->
     <div id="markerHint">Направте камеру на фото 🪽</div>
 
     <script>
-        class ARGame {
-            constructor() {
-                this.initializeElements();
-                this.setupGameState();
-                this.bindEvents();
-                this.initializeAR();
-                this.setupPerformanceMonitoring();
-            }
+        // 🔧 ПОКРАЩЕНА ІНІЦІАЛІЗАЦІЯ ТА КЕРУВАННЯ СТАНОМ
+        const state = {
+            isMarkerFound: false,
+            score: 0,
+            TARGET: 10,
+            fallingItems: [],
+            gameActive: false,
+            animationId: null,
+            soundEnabled: false,
+            isVideoReady: false,
+            isARReady: false
+        };
 
-            initializeElements() {
-                // Core elements
-                this.scene = document.getElementById('arScene');
-                this.videoEl = document.getElementById('video1');
-                this.videoPlane = document.getElementById('videoPlane');
-                this.gameCanvas = document.getElementById('gameCanvas');
-                this.ctx = this.gameCanvas.getContext('2d');
+        // Елементи
+        const elements = {
+            videoEl: document.getElementById('video1'),
+            videoPlane: document.getElementById('videoPlane'),
+            gameCanvas: document.getElementById('gameCanvas'),
+            ctx: null,
+            hud: document.getElementById('hud'),
+            scoreEl: document.getElementById('score'),
+            feedbackEl: document.getElementById('feedback'),
+            victoryEl: document.getElementById('victory'),
+            markerHint: document.getElementById('markerHint'),
+            videoControls: document.getElementById('videoControls'),
+            replayBtn: document.getElementById('replayBtn'),
+            soundBtn: document.getElementById('soundBtn'),
+            loading: document.getElementById('loading')
+        };
+
+        // Ініціалізація Canvas
+        function initializeCanvas() {
+            elements.ctx = elements.gameCanvas.getContext('2d');
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+        }
+
+        function resizeCanvas() {
+            elements.gameCanvas.width = window.innerWidth;
+            elements.gameCanvas.height = window.innerHeight;
+        }
+
+        // 🎯 ПОКРАЩЕНЕ КЕРУВАННЯ ВІДЕО
+        function initializeVideo() {
+            return new Promise((resolve) => {
+                const video = elements.videoEl;
                 
-                // UI elements
-                this.loadingScreen = document.getElementById('loadingScreen');
-                this.loadingProgress = document.getElementById('loadingProgress');
-                this.errorScreen = document.getElementById('errorScreen');
-                this.errorMessage = document.getElementById('errorMessage');
-                this.retryBtn = document.getElementById('retryBtn');
-                this.hud = document.getElementById('hud');
-                this.scoreEl = document.getElementById('score');
-                this.feedbackEl = document.getElementById('feedback');
-                this.victoryEl = document.getElementById('victory');
-                this.continueBtn = document.getElementById('continueBtn');
-                this.markerHint = document.getElementById('markerHint');
-                this.videoControls = document.getElementById('videoControls');
-                this.replayBtn = document.getElementById('replayBtn');
-                this.soundBtn = document.getElementById('soundBtn');
-                this.debugInfo = document.getElementById('debugInfo');
-
-                this.validateElements();
-                this.resizeCanvas();
-            }
-
-            validateElements() {
-                const requiredElements = [
-                    this.scene, this.videoEl, this.gameCanvas, this.ctx,
-                    this.loadingScreen, this.hud, this.scoreEl, this.feedbackEl,
-                    this.victoryEl, this.markerHint, this.videoControls
-                ];
-
-                requiredElements.forEach((element, index) => {
-                    if (!element) {
-                        throw new Error(`Required DOM element not found at index ${index}`);
-                    }
+                video.addEventListener('loadeddata', () => {
+                    console.log("✅ Відео завантажено");
+                    state.isVideoReady = true;
+                    hideLoading();
+                    resolve();
                 });
+
+                video.addEventListener('error', (e) => {
+                    console.error("❌ Помилка відео:", e);
+                    showFeedback("Помилка завантаження відео ❌", false);
+                    hideLoading();
+                    resolve(); // Все одно продовжуємо
+                });
+
+                video.addEventListener('canplaythrough', () => {
+                    console.log("✅ Відео готове до відтворення");
+                });
+
+                // Автозавантаження
+                video.load();
+            });
+        }
+
+        // 🔄 СТАБІЛЬНИЙ REPLAY
+        function replayVideo() {
+            if (!state.isMarkerFound) return;
+            
+            const video = elements.videoEl;
+            video.pause();
+            video.currentTime = 0;
+            
+            // Невелика затримка для стабільності
+            setTimeout(() => {
+                video.play().then(() => {
+                    showFeedback('Відео перезапущено 🔄', true);
+                }).catch(e => {
+                    console.error("Replay error:", e);
+                    showFeedback('Натисніть ще раз ▶️', false);
+                });
+            }, 50);
+        }
+
+        // 🔊 КЕРУВАННЯ ЗВУКОМ
+        function toggleSound() {
+            state.soundEnabled = !state.soundEnabled;
+            elements.videoEl.muted = !state.soundEnabled;
+            
+            if (state.soundEnabled) {
+                elements.soundBtn.textContent = '🔊 Вимк. звук';
+                elements.soundBtn.classList.add('on');
+                showFeedback('Звук увімкнено 🔊', true);
+            } else {
+                elements.soundBtn.textContent = '🔇 Увімк. звук';
+                elements.soundBtn.classList.remove('on');
+                showFeedback('Звук вимкнено 🔇', false);
             }
+        }
 
-            setupGameState() {
-                this.gameState = {
-                    isMarkerFound: false,
-                    score: 0,
-                    TARGET_SCORE: 10,
-                    fallingItems: [],
-                    gameActive: false,
-                    animationId: null,
-                    soundEnabled: false,
-                    lastSpawnTime: 0,
-                    SPAWN_INTERVAL: 800,
-                    lastFrameTime: 0,
-                    frameCount: 0,
-                    fps: 0
-                };
-
-                this.resizeTimeout = null;
-                this.isInitialized = false;
-            }
-
-            setupPerformanceMonitoring() {
-                // Enable debug info with URL parameter
-                const urlParams = new URLSearchParams(window.location.search);
-                if (urlParams.has('debug')) {
-                    this.debugInfo.style.display = 'block';
-                }
-            }
-
-            bindEvents() {
-                // Window events
-                window.addEventListener('resize', () => this.throttledResize());
-                window.addEventListener('load', () => this.handleLoad());
-                window.addEventListener('error', (e) => this.handleGlobalError(e));
-                window.addEventListener('unhandledrejection', (e) => this.handlePromiseRejection(e));
-
-                // Game events
-                this.gameCanvas.addEventListener('pointerdown', (e) => this.handleTap(e));
-                this.gameCanvas.addEventListener('touchstart', (e) => {
+        // 📱 ОПТИМІЗАЦІЯ ДЛЯ МОБІЛЬНИХ
+        function setupTouchEvents() {
+            // Кнопки
+            [elements.replayBtn, elements.soundBtn].forEach(btn => {
+                btn.addEventListener('touchstart', (e) => {
                     e.preventDefault();
-                    this.handleTap(e);
+                    e.stopPropagation();
+                    btn.style.transform = 'scale(0.92)';
                 }, { passive: false });
 
-                // Button events
-                this.replayBtn.addEventListener('click', () => this.replayVideo());
-                this.soundBtn.addEventListener('click', () => this.toggleSound());
-                this.continueBtn.addEventListener('click', () => this.restartGame());
-                this.retryBtn.addEventListener('click', () => this.retryAR());
-
-                // Video events
-                this.videoEl.addEventListener('loadeddata', () => this.handleVideoLoad());
-                this.videoEl.addEventListener('error', (e) => this.handleVideoError(e));
-                this.videoEl.addEventListener('ended', () => this.handleVideoEnd());
-                this.videoEl.addEventListener('canplay', () => this.updateLoadingProgress(50));
-                this.videoEl.addEventListener('progress', () => this.handleVideoProgress());
-
-                // AR events
-                this.scene.addEventListener('renderstart', () => this.handleARLoad());
-                this.scene.addEventListener('targetFound', () => this.handleTargetFound());
-                this.scene.addEventListener('targetLost', () => this.handleTargetLost());
-            }
-
-            async initializeAR() {
-                try {
-                    this.updateLoadingProgress(20);
+                btn.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    btn.style.transform = 'scale(1)';
                     
-                    // Wait for A-Frame to be ready
-                    if (!this.scene.hasLoaded) {
-                        await new Promise(resolve => {
-                            this.scene.addEventListener('loaded', resolve, { once: true });
-                        });
-                    }
+                    // Виклик функції
+                    setTimeout(() => {
+                        if (btn.id === 'replayBtn') replayVideo();
+                        else if (btn.id === 'soundBtn') toggleSound();
+                    }, 10);
+                }, { passive: false });
+            });
 
-                    this.updateLoadingProgress(40);
+            // Canvas для гри
+            elements.gameCanvas.addEventListener('touchstart', handleGameTouch, { passive: false });
+            elements.gameCanvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+        }
 
-                    // Initialize MindAR
-                    const mindarSystem = this.scene.systems['mindar-image-system'];
-                    if (!mindarSystem) {
-                        throw new Error('MindAR system not found');
-                    }
+        function handleGameTouch(e) {
+            if (!state.gameActive) return;
+            
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = elements.gameCanvas.getBoundingClientRect();
+            const scaleX = elements.gameCanvas.width / rect.width;
+            const scaleY = elements.gameCanvas.height / rect.height;
+            
+            const x = (touch.clientX - rect.left) * scaleX;
+            const y = (touch.clientY - rect.top) * scaleY;
+            
+            checkCollision(x, y);
+        }
 
-                    await mindarSystem.start();
-                    this.updateLoadingProgress(80);
-                    
-                    this.isInitialized = true;
-                    console.log('AR initialized successfully');
-                    
-                } catch (error) {
-                    console.error('AR initialization failed:', error);
-                    this.showError(`Помилка ініціалізації AR: ${error.message}`);
+        // 🎮 ОНОВЛЕННЯ ГРИ
+        function update() {
+            if (!state.gameActive) return;
+
+            elements.ctx.clearRect(0, 0, elements.gameCanvas.width, elements.gameCanvas.height);
+
+            // Оновлення падаючих елементів
+            for (let i = state.fallingItems.length - 1; i >= 0; i--) {
+                const item = state.fallingItems[i];
+                item.y += item.speed;
+
+                // Малювання
+                elements.ctx.font = `${item.size}px Arial, sans-serif`;
+                elements.ctx.textAlign = 'center';
+                elements.ctx.textBaseline = 'middle';
+                elements.ctx.fillText(item.emoji, item.x, item.y);
+
+                // Видалення за межами
+                if (item.y > elements.gameCanvas.height + 50) {
+                    state.fallingItems.splice(i, 1);
                 }
             }
 
-            // === RESIZE HANDLING ===
-            resizeCanvas() {
-                const dpr = Math.min(window.devicePixelRatio || 1, 2);
-                this.gameCanvas.width = window.innerWidth * dpr;
-                this.gameCanvas.height = window.innerHeight * dpr;
-                this.gameCanvas.style.width = window.innerWidth + 'px';
-                this.gameCanvas.style.height = window.innerHeight + 'px';
-                this.ctx.scale(dpr, dpr);
-            }
+            // Спавн нових елементів
+            if (Math.random() < 0.02) spawnItem();
 
-            throttledResize() {
-                if (!this.resizeTimeout) {
-                    this.resizeTimeout = setTimeout(() => {
-                        this.resizeCanvas();
-                        this.resizeTimeout = null;
-                    }, 100);
-                }
-            }
+            state.animationId = requestAnimationFrame(update);
+        }
 
-            // === GAME LOGIC ===
-            spawnItem() {
-                if (!this.gameState.gameActive || !this.gameState.isMarkerFound) return;
+        function spawnItem() {
+            if (!state.gameActive) return;
+            const emojis = ['🪽', '🎂', '🍷', '🎁', '🌹', '😂'];
+            const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+            state.fallingItems.push({
+                x: Math.random() * elements.gameCanvas.width,
+                y: -50,
+                size: 30 + Math.random() * 20,
+                speed: 1 + Math.random() * 2,
+                emoji: emoji,
+                isWing: emoji === '🪽',
+                id: Date.now() + Math.random()
+            });
+        }
 
-                const currentTime = performance.now();
-                if (currentTime - this.gameState.lastSpawnTime < this.gameState.SPAWN_INTERVAL) {
-                    return;
-                }
-
-                const emojis = ['🪽', '🎂', '🍷', '🎁', '🌹', '😂'];
-                const isWing = Math.random() < 0.4; // 40% chance for wings
-                const emoji = isWing ? '🪽' : emojis[Math.floor(Math.random() * (emojis.length - 1)) + 1];
-
-                this.gameState.fallingItems.push({
-                    x: Math.random() * (this.gameCanvas.width - 100) + 50,
-                    y: -60,
-                    size: 28 + Math.random() * 24,
-                    speed: 1.5 + Math.random() * 2.5,
-                    emoji: emoji,
-                    isWing: isWing,
-                    id: performance.now() + Math.random()
-                });
-
-                this.gameState.lastSpawnTime = currentTime;
-            }
-
-            update(currentTime = performance.now()) {
-                if (!this.gameState.gameActive || !this.gameState.isMarkerFound) {
-                    if (this.gameState.animationId) {
-                        cancelAnimationFrame(this.gameState.animationId);
-                        this.gameState.animationId = null;
-                    }
-                    return;
-                }
-
-                // Calculate FPS
-                this.frameCount++;
-                if (currentTime - this.gameState.lastFrameTime >= 1000) {
-                    this.gameState.fps = this.frameCount;
-                    this.frameCount = 0;
-                    this.gameState.lastFrameTime = currentTime;
-                    this.updateDebugInfo();
-                }
-
-                // Clear canvas
-                this.ctx.clearRect(0, 0, this.gameCanvas.width, this.gameCanvas.height);
-
-                // Update and render items
-                this.ctx.textAlign = 'center';
-                this.ctx.textBaseline = 'middle';
-
-                for (let i = this.gameState.fallingItems.length - 1; i >= 0; i--) {
-                    const item = this.gameState.fallingItems[i];
-                    item.y += item.speed;
-
-                    // Add subtle horizontal movement
-                    item.x += Math.sin(currentTime * 0.001 + item.id) * 0.5;
-
-                    this.ctx.font = `bold ${item.size}px sans-serif`;
-                    this.ctx.fillText(item.emoji, item.x, item.y);
-
-                    // Remove if out of bounds
-                    if (item.y > this.gameCanvas.height + 100) {
-                        this.gameState.fallingItems.splice(i, 1);
-                    }
-                }
-
-                // Spawn new items with probability
-                if (Math.random() < 0.04) {
-                    this.spawnItem();
-                }
-
-                this.gameState.animationId = requestAnimationFrame((time) => this.update(time));
-            }
-
-            handleTap(event) {
-                if (!this.gameState.gameActive || !this.gameState.isMarkerFound) return;
-
-                event.preventDefault();
+        function checkCollision(x, y) {
+            let hit = false;
+            
+            for (let i = state.fallingItems.length - 1; i >= 0; i--) {
+                const item = state.fallingItems[i];
+                const dx = x - item.x;
+                const dy = y - item.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                const rect = this.gameCanvas.getBoundingClientRect();
-                const scaleX = this.gameCanvas.width / rect.width;
-                const scaleY = this.gameCanvas.height / rect.height;
-                
-                const clientX = event.clientX || (event.touches && event.touches[0].clientX);
-                const clientY = event.clientY || (event.touches && event.touches[0].clientY);
-                
-                if (!clientX || !clientY) return;
-                
-                const x = (clientX - rect.left) * scaleX;
-                const y = (clientY - rect.top) * scaleY;
+                if (distance < item.size * 0.8) {
+                    hit = true;
+                    const isWing = item.isWing;
+                    state.fallingItems.splice(i, 1);
 
-                let hit = false;
-                
-                for (let i = this.gameState.fallingItems.length - 1; i >= 0; i--) {
-                    const item = this.gameState.fallingItems[i];
-                    const dx = x - item.x;
-                    const dy = y - item.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    
-                    if (distance < item.size * 0.6) {
-                        hit = true;
-                        const isWing = item.isWing;
-                        this.gameState.fallingItems.splice(i, 1);
-
-                        if (isWing) {
-                            this.gameState.score++;
-                            this.updateScore();
-                            this.showFeedback('+1 крило! 🪽', true);
-                            
-                            if (this.gameState.score >= this.gameState.TARGET_SCORE) {
-                                this.endGame(true);
-                            }
-                        } else {
-                            this.showFeedback('Ой, ще без крил 😅', false);
-                        }
-                        break;
-                    }
-                }
-                
-                if (!hit) {
-                    this.showFeedback('Мімо! 👆', false);
-                }
-            }
-
-            // === GAME STATE MANAGEMENT ===
-            startGame() {
-                if (this.gameState.gameActive) return;
-                
-                this.gameState.gameActive = true;
-                this.gameState.score = 0;
-                this.gameState.fallingItems = [];
-                
-                this.updateScore();
-                this.showHUD(true);
-                this.showVideoControls(true);
-                this.hideVictory();
-                
-                this.gameState.lastFrameTime = performance.now();
-                this.update();
-                
-                // Initial spawn
-                setTimeout(() => {
-                    for (let i = 0; i < 3; i++) {
-                        setTimeout(() => this.spawnItem(), i * 300);
-                    }
-                }, 500);
-            }
-
-            endGame(isWin) {
-                this.gameState.gameActive = false;
-                
-                if (this.gameState.animationId) {
-                    cancelAnimationFrame(this.gameState.animationId);
-                    this.gameState.animationId = null;
-                }
-
-                // Clear falling items
-                this.gameState.fallingItems = [];
-                this.ctx.clearRect(0, 0, this.gameCanvas.width, this.gameCanvas.height);
-
-                if (isWin) {
-                    this.showVictory();
-                }
-            }
-
-            restartGame() {
-                this.hideVictory();
-                this.startGame();
-            }
-
-            updateScore() {
-                this.scoreEl.textContent = `Крила: ${this.gameState.score}/${this.gameState.TARGET_SCORE}`;
-            }
-
-            updateDebugInfo() {
-                if (this.debugInfo.style.display !== 'block') return;
-                
-                this.debugInfo.textContent = 
-                    `FPS: ${this.gameState.fps} | ` +
-                    `Items: ${this.gameState.fallingItems.length} | ` +
-                    `Marker: ${this.gameState.isMarkerFound ? 'Found' : 'Lost'} | ` +
-                    `Score: ${this.gameState.score}`;
-            }
-
-            // === VIDEO CONTROLS ===
-            async toggleSound() {
-                try {
-                    this.gameState.soundEnabled = !this.gameState.soundEnabled;
-                    this.videoEl.muted = !this.gameState.soundEnabled;
-                    
-                    if (this.gameState.soundEnabled) {
-                        this.soundBtn.textContent = '🔊 Вимк. звук';
-                        this.soundBtn.classList.add('on');
-                        this.showFeedback('Звук увімкнено 🔊', true);
-                        
-                        // Try to play with sound if video is paused
-                        if (this.videoEl.paused) {
-                            await this.videoEl.play();
+                    if (isWing) {
+                        state.score++;
+                        elements.scoreEl.textContent = `Крила: ${state.score}/${state.TARGET}`;
+                        showFeedback('+1 крило! 🪽', true);
+                        if (state.score >= state.TARGET) {
+                            endGame(true);
                         }
                     } else {
-                        this.soundBtn.textContent = '🔇 Увімк. звук';
-                        this.soundBtn.classList.remove('on');
-                        this.showFeedback('Звук вимкнено 🔇', false);
+                        showFeedback('Ой, ще без крил 😅', false);
                     }
-                } catch (error) {
-                    console.warn('Audio play failed:', error);
-                    this.showFeedback('Звук недоступний', false);
-                    // Revert state
-                    this.gameState.soundEnabled = false;
-                    this.videoEl.muted = true;
-                    this.soundBtn.textContent = '🔇 Увімк. звук';
-                    this.soundBtn.classList.remove('on');
+                    break;
                 }
             }
-
-            replayVideo() {
-                try {
-                    this.videoEl.currentTime = 0;
-                    this.videoEl.play().catch(e => {
-                        console.warn('Video replay play failed:', e);
-                    });
-                    this.showFeedback('Відео перезапущено 🔄', true);
-                } catch (error) {
-                    console.warn('Video replay failed:', error);
-                    this.showFeedback('Помилка перезапуску', false);
-                }
+            
+            if (!hit) {
+                showFeedback('Мімо! 👆', false);
             }
+        }
 
-            // === UI FEEDBACK ===
-            showFeedback(text, isGood = true) {
-                this.feedbackEl.textContent = text;
-                this.feedbackEl.style.color = isGood ? '#d4af37' : '#ff6b6b';
-                this.feedbackEl.classList.add('visible');
-                
+        // 🏁 КЕРУВАННЯ ГРОЮ
+        function startGame() {
+            if (state.gameActive) return;
+            
+            state.gameActive = true;
+            state.score = 0;
+            state.fallingItems = [];
+            elements.scoreEl.textContent = `Крила: ${state.score}/${state.TARGET}`;
+            elements.hud.style.display = 'block';
+            elements.videoControls.style.display = 'flex';
+            elements.victoryEl.style.display = 'none';
+            
+            update();
+            setTimeout(spawnItem, 500);
+        }
+
+        function endGame(isWin) {
+            state.gameActive = false;
+            if (state.animationId) {
+                cancelAnimationFrame(state.animationId);
+                state.animationId = null;
+            }
+            
+            if (isWin) {
+                elements.victoryEl.textContent = 'Аня надає крила! 💋';
+                elements.victoryEl.style.display = 'block';
                 setTimeout(() => {
-                    this.feedbackEl.classList.remove('visible');
-                }, 1500);
+                    elements.victoryEl.style.display = 'none';
+                    startGame(); // Автоматичний перезапуск
+                }, 3000);
             }
+        }
 
-            showHUD(show) {
-                if (show) {
-                    this.hud.classList.add('visible');
-                } else {
-                    this.hud.classList.remove('visible');
-                }
-            }
+        // 💬 ФІДБЕК ТА ІНТЕРФЕЙС
+        function showFeedback(text, isGood = true) {
+            elements.feedbackEl.textContent = text;
+            elements.feedbackEl.style.color = isGood ? '#d4af37' : '#ff6b6b';
+            elements.feedbackEl.style.opacity = '1';
+            
+            setTimeout(() => {
+                elements.feedbackEl.style.opacity = '0';
+            }, 1500);
+        }
 
-            showVideoControls(show) {
-                if (show) {
-                    this.videoControls.classList.add('visible');
-                } else {
-                    this.videoControls.classList.remove('visible');
-                }
-            }
+        function showLoading() {
+            elements.loading.style.display = 'block';
+        }
 
-            showVictory() {
-                this.victoryEl.classList.add('visible');
-            }
+        function hideLoading() {
+            elements.loading.style.display = 'none';
+        }
 
-            hideVictory() {
-                this.victoryEl.classList.remove('visible');
-            }
+        // 🎯 AR ПОДІЇ ТА ІНІЦІАЛІЗАЦІЯ
+        function initializeAR() {
+            const scene = document.querySelector('a-scene');
+            
+            scene.addEventListener('renderstart', () => {
+                console.log("✅ AR сцена готова");
+                state.isARReady = true;
+                hideLoading();
+            });
 
-            hideMarkerHint() {
-                this.markerHint.classList.add('hidden');
-            }
-
-            showMarkerHint() {
-                this.markerHint.classList.remove('hidden');
-            }
-
-            updateLoadingProgress(percent) {
-                this.loadingProgress.style.width = percent + '%';
-            }
-
-            // === AR EVENT HANDLERS ===
-            handleARLoad() {
-                console.log('AR scene rendered');
-                this.updateLoadingProgress(100);
-                setTimeout(() => {
-                    this.hideLoading();
-                    this.scene.classList.add('ready');
-                }, 500);
-            }
-
-            handleTargetFound() {
-                console.log('Marker found');
-                this.gameState.isMarkerFound = true;
-                this.hideMarkerHint();
-                this.videoPlane.setAttribute('visible', 'true');
+            scene.addEventListener('targetFound', (event) => {
+                console.log("🎯 Маркер знайдено");
+                state.isMarkerFound = true;
+                elements.markerHint.style.display = 'none';
+                elements.videoPlane.setAttribute('visible', 'true');
                 
-                this.videoEl.play().catch(e => {
-                    console.warn('Autoplay failed:', e);
-                    this.showFeedback('Натисніть для запуску відео', false);
+                // Запуск відео
+                elements.videoEl.play().catch(e => {
+                    console.log("Автопрогравання заблоковано, чекаємо кліку");
                 });
                 
-                this.startGame();
-            }
-
-            handleTargetLost() {
-                console.log('Marker lost');
-                this.gameState.isMarkerFound = false;
-                this.videoPlane.setAttribute('visible', 'false');
-                
-                if (!this.videoEl.paused) {
-                    this.videoEl.pause();
-                }
-                
-                this.endGame(false);
-                this.showHUD(false);
-                this.showVideoControls(false);
-                this.hideVictory();
-                this.showMarkerHint();
-            }
-
-            // === ERROR HANDLING ===
-            handleGlobalError(event) {
-                console.error('Global error:', event.error);
-                this.showError('Сталася неочікувана помилка');
-            }
-
-            handlePromiseRejection(event) {
-                console.error('Unhandled promise rejection:', event.reason);
-                this.showError('Помилка завантаження: ' + event.reason);
-            }
-
-            handleVideoError(event) {
-                console.error('Video error:', event);
-                this.showFeedback('Помилка завантаження відео', false);
-            }
-
-            handleVideoProgress() {
-                if (this.videoEl.buffered.length > 0) {
-                    const bufferedEnd = this.videoEl.buffered.end(this.videoEl.buffered.length - 1);
-                    const duration = this.videoEl.duration;
-                    if (duration > 0) {
-                        const progress = (bufferedEnd / duration) * 100;
-                        this.updateLoadingProgress(Math.min(70, 40 + progress * 0.3));
-                    }
-                }
-            }
-
-            showError(message) {
-                this.errorMessage.textContent = message;
-                this.errorScreen.classList.add('visible');
-                this.hideLoading();
-            }
-
-            hideError() {
-                this.errorScreen.classList.remove('visible');
-            }
-
-            hideLoading() {
-                this.loadingScreen.classList.add('hidden');
-                setTimeout(() => {
-                    this.loadingScreen.style.display = 'none';
-                }, 500);
-            }
-
-            // === EVENT HANDLERS ===
-            handleLoad() {
-                console.log('Page loaded');
-                // Adjust for small screens
-                if (window.innerHeight < 600) {
-                    this.videoControls.style.bottom = '70px';
-                }
-            }
-
-            handleVideoLoad() {
-                console.log('Video loaded successfully');
-                this.updateLoadingProgress(60);
-            }
-
-            handleVideoEnd() {
-                this.showFeedback('Відео завершено! Можете переглянути ще раз ▶️', true);
-            }
-
-            retryAR() {
-                this.hideError();
-                this.loadingScreen.style.display = 'flex';
-                this.loadingScreen.classList.remove('hidden');
-                this.updateLoadingProgress(0);
-                
-                setTimeout(() => {
-                    window.location.reload();
-                }, 500);
-            }
-        }
-
-        // Initialize game when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                try {
-                    new ARGame();
-                } catch (error) {
-                    console.error('Failed to initialize ARGame:', error);
-                    document.getElementById('errorMessage').textContent = 'Помилка ініціалізації гри: ' + error.message;
-                    document.getElementById('errorScreen').classList.add('visible');
-                    document.getElementById('loadingScreen').style.display = 'none';
-                }
+                startGame();
             });
-        } else {
+
+            scene.addEventListener('targetLost', () => {
+                console.log("📵 Маркер втрачено");
+                state.isMarkerFound = false;
+                elements.videoPlane.setAttribute('visible', 'false');
+                
+                if (!elements.videoEl.paused) {
+                    elements.videoEl.pause();
+                }
+                
+                // Зупинка гри
+                state.gameActive = false;
+                if (state.animationId) {
+                    cancelAnimationFrame(state.animationId);
+                    state.animationId = null;
+                }
+                
+                elements.hud.style.display = 'none';
+                elements.videoControls.style.display = 'none';
+                elements.victoryEl.style.display = 'none';
+                state.fallingItems = [];
+            });
+        }
+
+        // 🚀 ІНІЦІАЛІЗАЦІЯ ДОДАТКУ
+        async function initializeApp() {
+            console.log("🚀 Ініціалізація додатку...");
+            showLoading();
+            
             try {
-                new ARGame();
+                initializeCanvas();
+                setupTouchEvents();
+                await initializeVideo();
+                initializeAR();
+                
+                // Події кнопок
+                elements.replayBtn.addEventListener('click', replayVideo);
+                elements.soundBtn.addEventListener('click', toggleSound);
+                
+                // Обробка завершення відео
+                elements.videoEl.addEventListener('ended', () => {
+                    showFeedback('Відео завершено! ▶️', true);
+                });
+                
+                console.log("✅ Додаток ініціалізовано");
+                
             } catch (error) {
-                console.error('Failed to initialize ARGame:', error);
-                document.getElementById('errorMessage').textContent = 'Помилка ініціалізації гри: ' + error.message;
-                document.getElementById('errorScreen').classList.add('visible');
-                document.getElementById('loadingScreen').style.display = 'none';
+                console.error("❌ Помилка ініціалізації:", error);
+                showFeedback("Помилка завантаження ❌", false);
+            } finally {
+                setTimeout(hideLoading, 2000);
             }
         }
+
+        // 📱 SAFE AREA ТА АДАПТАЦІЯ
+        function setupSafeArea() {
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+            
+            window.addEventListener('resize', () => {
+                const vh = window.innerHeight * 0.01;
+                document.documentElement.style.setProperty('--vh', `${vh}px`);
+            });
+        }
+
+        // 🏁 ЗАПУСК
+        document.addEventListener('DOMContentLoaded', () => {
+            setupSafeArea();
+            initializeApp();
+            
+            // Приховування початкової підказки
+            setTimeout(() => {
+                elements.markerHint.style.display = 'none';
+            }, 5000);
+        });
+
+        // 🧹 ЗАПОБІГАННЯ MEMORY LEAKS
+        window.addEventListener('beforeunload', () => {
+            if (state.animationId) {
+                cancelAnimationFrame(state.animationId);
+            }
+            if (elements.videoEl) {
+                elements.videoEl.pause();
+                elements.videoEl.src = '';
+            }
+        });
     </script>
 </body>
 </html>
