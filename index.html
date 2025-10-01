@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- A-Frame and MindAR (без пробілів!) -->
+    <!-- A-Frame and MindAR -->
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
@@ -27,7 +27,7 @@
             user-select: none;
         }
 
-        /* Loading Screen — чорний */
+        /* Loading Screen */
         .loading-screen {
             position: fixed;
             top: 0;
@@ -203,7 +203,7 @@
         /* Marker Hint */
         #markerHint {
             position: fixed;
-            bottom: 30px;
+            bottom: calc(80px + env(safe-area-inset-bottom, 20px));
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.8);
@@ -225,10 +225,9 @@
             pointer-events: none;
         }
 
-        /* Video Controls */
+        /* Video Controls — АДАПТИВНІ КНОПКИ */
         .video-controls {
             position: fixed;
-            bottom: 100px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 35;
@@ -241,6 +240,34 @@
             justify-content: center;
             opacity: 0;
             transition: opacity 0.3s ease;
+            bottom: calc(20px + env(safe-area-inset-bottom, 16px));
+        }
+
+        @media (max-height: 650px) {
+            .video-controls {
+                flex-direction: column;
+                align-items: center;
+                gap: 12px;
+                max-width: 300px;
+                bottom: calc(16px + env(safe-area-inset-bottom, 12px));
+            }
+            .video-btn {
+                width: 100%;
+                max-width: 280px;
+                padding: 14px;
+                font-size: 16px;
+            }
+        }
+
+        @media (max-height: 600px) {
+            .video-controls {
+                bottom: calc(12px + env(safe-area-inset-bottom, 10px));
+                gap: 10px;
+            }
+            .video-btn {
+                padding: 12px;
+                font-size: 15px;
+            }
         }
 
         .video-controls.visible {
@@ -352,13 +379,11 @@
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0">
-            <!-- Відео "у повітрі" на прозорому фоні -->
             <a-video
                 src="#video1"
                 width="0.85"
                 height="1.5"
                 position="0 0 0"
-                rotation="0 0 0"
                 visible="false"
                 id="videoEntity">
             </a-video>
@@ -399,7 +424,6 @@
                 this.initializeElements();
                 this.setupGameState();
                 this.bindEvents();
-                // AR запускається автоматично через autoStart: true
             }
 
             initializeElements() {
@@ -409,7 +433,6 @@
                 this.gameCanvas = document.getElementById('gameCanvas');
                 this.ctx = this.gameCanvas.getContext('2d');
                 
-                // UI
                 this.loadingScreen = document.getElementById('loadingScreen');
                 this.errorScreen = document.getElementById('errorScreen');
                 this.errorMessage = document.getElementById('errorMessage');
@@ -449,9 +472,8 @@
                     animationId: null,
                     soundEnabled: false,
                     lastSpawnTime: 0,
-                    // Збільшено частоту спавну крил!
-                    SPAWN_INTERVAL: 300, // було 500
-                    WING_PROBABILITY: 0.6 // 60% шанс крила (було ~1/6)
+                    SPAWN_INTERVAL: 300,
+                    WING_PROBABILITY: 0.6
                 };
             }
 
@@ -477,7 +499,6 @@
                 this.scene.addEventListener('arError', (e) => this.handleARError(e));
             }
 
-            // === RESIZE ===
             resizeCanvas() {
                 const dpr = window.devicePixelRatio || 1;
                 this.gameCanvas.width = window.innerWidth * dpr;
@@ -492,14 +513,11 @@
                 this.resizeTimeout = setTimeout(() => this.resizeCanvas(), 100);
             }
 
-            // === GAME LOGIC ===
             spawnItem() {
                 if (!this.gameState.gameActive) return;
-
                 const now = performance.now();
                 if (now - this.gameState.lastSpawnTime < this.gameState.SPAWN_INTERVAL) return;
 
-                // Більше крил!
                 const isWing = Math.random() < this.gameState.WING_PROBABILITY;
                 const emoji = isWing ? '🪽' : ['🎂', '🍷', '🎁', '🌹', '😂'][Math.floor(Math.random() * 5)];
 
@@ -526,7 +544,6 @@
                 for (let i = this.gameState.fallingItems.length - 1; i >= 0; i--) {
                     const item = this.gameState.fallingItems[i];
                     item.y += item.speed;
-
                     this.ctx.font = `bold ${item.size}px sans-serif`;
                     this.ctx.fillText(item.emoji, item.x, item.y);
 
@@ -535,15 +552,12 @@
                     }
                 }
 
-                // Спавн кожні 300 мс гарантовано
                 this.spawnItem();
-
                 this.gameState.animationId = requestAnimationFrame(() => this.update());
             }
 
             handleTap(event) {
                 if (!this.gameState.gameActive) return;
-
                 const rect = this.gameCanvas.getBoundingClientRect();
                 const x = event.clientX - rect.left;
                 const y = event.clientY - rect.top;
@@ -554,12 +568,10 @@
                     const dx = x - item.x;
                     const dy = y - item.y;
                     const distance = Math.sqrt(dx*dx + dy*dy);
-                    
                     if (distance < item.size * 0.6) {
                         hit = true;
                         const isWing = item.isWing;
                         this.gameState.fallingItems.splice(i, 1);
-
                         if (isWing) {
                             this.gameState.score++;
                             this.updateScore();
@@ -573,11 +585,9 @@
                         break;
                     }
                 }
-                
                 if (!hit) this.showFeedback('Мімо! 👆', false);
             }
 
-            // === GAME CONTROL ===
             startGame() {
                 if (this.gameState.gameActive) return;
                 this.gameState.gameActive = true;
@@ -608,11 +618,9 @@
                 this.scoreEl.textContent = `Крила: ${this.gameState.score}/${this.gameState.TARGET_SCORE}`;
             }
 
-            // === VIDEO ===
             async toggleSound() {
                 this.gameState.soundEnabled = !this.gameState.soundEnabled;
                 this.videoEl.muted = !this.gameState.soundEnabled;
-                
                 if (this.gameState.soundEnabled) {
                     this.soundBtn.textContent = '🔊 Вимк. звук';
                     this.soundBtn.classList.add('on');
@@ -631,7 +639,6 @@
                 this.showFeedback('Відео перезапущено 🔄', true);
             }
 
-            // === UI ===
             showFeedback(text, isGood = true) {
                 this.feedbackEl.textContent = text;
                 this.feedbackEl.style.color = isGood ? '#d4af37' : '#ff6b6b';
@@ -649,7 +656,6 @@
             showError(msg) { this.errorMessage.textContent = msg; this.errorScreen.classList.add('visible'); this.hideLoading(); }
             hideError() { this.errorScreen.classList.remove('visible'); }
 
-            // === AR EVENTS ===
             handleARLoad() {
                 this.hideLoading();
                 this.scene.classList.add('ready');
@@ -679,11 +685,9 @@
                 this.showMarkerHint();
             }
 
-            // === ERRORS ===
             handleGlobalError(e) { this.showError('Неочікувана помилка'); }
             handleVideoError(e) { this.showFeedback('Помилка відео', false); }
             handleARError(e) { this.showError('Помилка AR: ' + (e.detail || '')); }
-
             handleVideoLoad() { console.log('Video loaded'); }
             handleVideoEnd() { this.showFeedback('Відео завершено! ▶️', true); }
 
