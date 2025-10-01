@@ -21,7 +21,7 @@
             font-family: Inter, sans-serif;
         }
 
-        /* AR-сцена — тепер НЕ приховуємо! */
+        /* AR-сцена */
         a-scene {
             position: fixed;
             top: 0;
@@ -119,7 +119,7 @@
 </head>
 <body>
 
-    <!-- AR-сцена (камера буде видно!) -->
+    <!-- AR-сцена -->
     <a-scene
         mindar-image="imageTargetSrc: https://lessa2332.github.io/ana/marker.mind; autoStart: true; uiLoading: no; uiError: no;"
         embedded
@@ -135,8 +135,10 @@
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0">
+            <!-- ЗМІНА: прозорий матеріал для відео -->
             <a-plane id="videoPlane" position="0 0 0" width="0.85" height="1.5" 
-                     material="shader: flat; src: #video1; transparent: false;" visible="false"></a-plane>
+                     material="shader: flat; src: #video1; transparent: true; opacity: 1;"
+                     visible="false"></a-plane>
         </a-entity>
     </a-scene>
 
@@ -206,7 +208,9 @@
                 size: 30 + Math.random() * 20,
                 speed: 1 + Math.random() * 2,
                 emoji: emoji,
-                isWing: emoji === '🪽'
+                isWing: emoji === '🪽',
+                // Додаємо ID для кращого відстеження
+                id: Date.now() + Math.random()
             });
         }
 
@@ -214,7 +218,7 @@
         function update() {
             if (!gameActive) return;
 
-            // Очистити
+            // Очистити canvas прозорим кольором
             ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
 
             // Оновити елементи
@@ -240,20 +244,31 @@
             animationId = requestAnimationFrame(update);
         }
 
-        // Обробка дотику
+        // ПОЛІПШЕНА обробка дотику
         gameCanvas.addEventListener('pointerdown', (e) => {
             if (!gameActive) return;
+            
             const rect = gameCanvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const scaleX = gameCanvas.width / rect.width;
+            const scaleY = gameCanvas.height / rect.height;
+            
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
 
+            let hit = false;
+            
+            // Перевіряємо знизу вгору (останні додані елементи першими)
             for (let i = fallingItems.length - 1; i >= 0; i--) {
                 const item = fallingItems[i];
+                
+                // Більш точна перевірка колізії для emoji
                 const dx = x - item.x;
                 const dy = y - item.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < item.size / 2) {
-                    // Влучив!
+                
+                // Радіус для кліку трохи більший ніж розмір
+                if (distance < item.size * 0.8) {
+                    hit = true;
                     const isWing = item.isWing;
                     fallingItems.splice(i, 1);
 
@@ -267,8 +282,13 @@
                     } else {
                         showFeedback('Ой, ще без крил 😅', false);
                     }
-                    break;
+                    break; // Зупиняємо після першого влучення
                 }
+            }
+            
+            // Якщо нічого не влучили
+            if (!hit) {
+                showFeedback('Мімо! 👆', false);
             }
         });
 
@@ -328,6 +348,11 @@
 
         // Початкова підказка
         setTimeout(() => markerHint.style.display = 'none', 4000);
+        
+        // Додаткова перевірка для мобільних пристроїв
+        gameCanvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Запобігаємо скролу
+        }, { passive: false });
     </script>
 </body>
 </html>
