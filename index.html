@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
   <title>Аня надає крила — AR привітання</title>
 
+  <!-- Шрифт Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
   <!-- A-Frame + MindAR -->
   <script src="https://cdn.jsdelivr.net/npm/aframe@1.5.0/dist/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
@@ -122,7 +127,7 @@
       border-radius:10px;
       background: linear-gradient(180deg,#060606,#101010);
       box-shadow: 0 8px 30px rgba(0,0,0,0.6);
-      touch-action: manipulation;
+      touch-action: none; /* замість manipulation */
     }
 
     /* Small gold label */
@@ -167,8 +172,8 @@
   <!-- Center menu (shows after video ends or can be toggled) -->
   <div id="menu" class="menu" aria-hidden="true">
     <h3>Оберіть гру</h3>
-    <button id="menuGame1" class="btn small">❤️🪽 Love Match</button>
-    <button id="menuGame2" class="btn small">✈️ Славочка-пілот</button>
+    <button id="menuGame1" class="btn small" aria-label="Гра Love Match">❤️🪽 Love Match</button>
+    <button id="menuGame2" class="btn small" aria-label="Гра Славочка-пілот">✈️ Славочка-пілот</button>
     <div style="height:6px"></div>
     <button id="menuBack" class="btn small">Повернутися до AR</button>
   </div>
@@ -183,7 +188,7 @@
 
     <a-assets>
       <!-- video file (поклади video1.mp4 поруч із index.html) -->
-      <video id="video1" src="video1.mp4" crossorigin="anonymous" playsinline webkit-playsinline preload="auto" loop="false"></video>
+      <video id="video1" src="video1.mp4" muted crossorigin="anonymous" playsinline webkit-playsinline preload="auto" loop="false"></video>
     </a-assets>
 
     <!-- camera -->
@@ -246,6 +251,12 @@
     const btnBackToAR = document.getElementById('btnBackToAR');
     const btnRestart = document.getElementById('btnRestart');
 
+    // Обробка помилки завантаження відео
+    videoEl.addEventListener('error', () => {
+      console.error('Failed to load video1.mp4');
+      alert('Відео не знайдено. Переконайтеся, що файл video1.mp4 знаходиться поруч із цим HTML-файлом.');
+    });
+
     // For mobile autoplay gestures: user must interact to allow audio play.
     function ensurePlayAllowed() {
       // try to play and immediately pause to unlock audio
@@ -258,11 +269,10 @@
     }
 
     // Hook play/stop to video element
-    btnPlay.addEventListener('click', ()=>{
-      // show video if hidden by mindar? The video plane displays it.
+    btnPlay.addEventListener('click', ()=> {
       videoEl.play().catch(()=>{ /* play might be blocked until user gesture */ });
     });
-    btnStop.addEventListener('click', ()=>{
+    btnStop.addEventListener('click', ()=> {
       videoEl.pause();
       videoEl.currentTime = 0;
       showMenu(); // show menu when stopped
@@ -279,7 +289,7 @@
     }
 
     // MindAR events: show menu after video ended
-    videoEl.addEventListener('ended', ()=>{
+    videoEl.addEventListener('ended', ()=> {
       showMenu();
     });
 
@@ -367,12 +377,17 @@
     // adjust canvas size
     function fitCanvas(){
       const ratio = window.devicePixelRatio || 1;
-      const w = Math.min(window.innerWidth-40, 420);
-      const h = Math.round((w * 9)/16);
-      gameCanvas.style.width = w + 'px';
-      gameCanvas.style.height = (window.innerHeight * 0.62) + 'px';
-      gameCanvas.width = Math.round(w * ratio);
-      gameCanvas.height = Math.round((window.innerHeight * 0.62) * ratio);
+      const maxWidth = Math.min(window.innerWidth - 40, 420);
+      const maxHeight = window.innerHeight * 0.62;
+
+      // Зберігаємо пропорції 16:9
+      const idealHeight = maxWidth * 9 / 16;
+      const finalHeight = Math.min(idealHeight, maxHeight);
+
+      gameCanvas.style.width = maxWidth + 'px';
+      gameCanvas.style.height = finalHeight + 'px';
+      gameCanvas.width = Math.round(maxWidth * ratio);
+      gameCanvas.height = Math.round(finalHeight * ratio);
     }
     window.addEventListener('resize', fitCanvas);
     fitCanvas();
@@ -668,7 +683,6 @@
     }
 
     // When closing or switching games, call cleanup
-    const origClose = closeGame;
     function closeGame(){
       if (gameOverlay._cleanup) {
         try { gameOverlay._cleanup(); } catch(e) {}
@@ -679,8 +693,6 @@
       currentGame = null;
       victoryText.style.display = 'none';
     }
-    // Overwrite exported ref
-    window.closeGame = closeGame;
 
     // init: hide menu until video ends or user stops
     hideMenu();
