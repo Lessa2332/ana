@@ -1,290 +1,707 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="description" content="AR-сцена з писанкою для дітей">
-    <title>🥚«Писанка на долоні» 🎨</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
+  <title>Аня надає крила — AR привітання</title>
 
-    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+  <!-- A-Frame + MindAR -->
+  <script src="https://cdn.jsdelivr.net/npm/aframe@1.5.0/dist/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
-    <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: transparent;
-        }
-        
-        a-scene {
-            width: 100% !important;
-            height: 100% !important;
-            position: fixed;
-            top: 0;
-            left: 0;
-            background: transparent;
-        }
+  <style>
+    :root{
+      --gold: #d4af37;
+      --black: #0b0b0b;
+      --glass: rgba(255,255,255,0.03);
+      --text: #f7f3f0;
+    }
+    html,body{
+      height:100%;
+      margin:0;
+      background:var(--black);
+      color:var(--text);
+      font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
 
-        .arjs-loader {
-            height: 100%;
-            width: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-            background: rgba(135, 206, 235, 0.2);
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: #FF4500;
-            font-size: 1.8em;
-            text-align: center;
-            padding: 20px;
-            box-sizing: border-box;
-            font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif;
-        }
+    /* Top HUD */
+    .hud {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      top: 12px;
+      z-index: 40;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      pointer-events: auto;
+    }
+    .btn {
+      background: linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.35));
+      border: 1px solid rgba(212,175,55,0.15);
+      padding:8px 12px;
+      border-radius:10px;
+      color:var(--gold);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+      font-weight:600;
+      cursor:pointer;
+      backdrop-filter: blur(6px);
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .btn.small { padding:6px 10px; font-size:14px; border-radius:8px;}
+    .btn.gold {
+      background: linear-gradient(90deg, rgba(212,175,55,0.12), rgba(212,175,55,0.06));
+      color:var(--black);
+      border:1px solid rgba(212,175,55,0.95);
+    }
 
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
+    /* Center menu shown after video */
+    .menu {
+      position: fixed;
+      left: 50%;
+      top: 60%;
+      transform: translate(-50%,-50%);
+      z-index: 40;
+      display:none;
+      gap:12px;
+      flex-direction:column;
+      align-items:center;
+      background: linear-gradient(180deg, rgba(11,11,11,0.85), rgba(11,11,11,0.6));
+      border: 1px solid rgba(212,175,55,0.12);
+      padding:16px;
+      border-radius:12px;
+      min-width:220px;
+      text-align:center;
+    }
+    .menu h3 { margin:4px 0 8px 0; color:var(--gold);}
 
-        .pulse { animation: pulse 1.5s infinite; }
+    /* Game overlay full-screen */
+    .game-overlay {
+      position: fixed;
+      inset:0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.88), rgba(6,6,6,0.96));
+      z-index: 60;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      color:var(--text);
+      padding:20px;
+    }
+    .game-ui {
+      width:100%;
+      max-width:420px;
+      margin:0 auto;
+      text-align:center;
+    }
+    .game-top {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-bottom:8px;
+    }
+    .timer {
+      color:var(--gold);
+      font-weight:700;
+    }
+    .back-btn {
+      position: fixed;
+      left: 12px;
+      top: 12px;
+      z-index: 80;
+    }
 
-        .controls {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10000;
-            display: flex;
-            gap: 10px;
-        }
+    /* Canvas style */
+    canvas#gameCanvas {
+      width:100%;
+      height: 70vh;
+      border-radius:10px;
+      background: linear-gradient(180deg,#060606,#101010);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+      touch-action: manipulation;
+    }
 
-        .sound-btn, .youtube-btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 15px;
-            cursor: pointer;
-            font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif;
-            font-size: 1em;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            text-decoration: none;
-        }
+    /* Small gold label */
+    .label-gold {
+      display:inline-block;
+      color:var(--gold);
+      font-weight:700;
+      font-size:14px;
+    }
 
-        .sound-btn { background-color: #4CAF50; color: white; }
-        .sound-btn.off { background-color: #f44336; }
-        .youtube-btn { background-color: #FF9800; color: white; }
-        .youtube-btn:hover { background-color: #FFB300; }
-    </style>
+    /* Victory popup */
+    .victory {
+      margin-top:12px;
+      display:none;
+      color:var(--gold);
+      font-weight:800;
+      font-size:18px;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width:480px){
+      .hud { top:6px; gap:6px; }
+      .menu { top:58%; min-width:180px;}
+      canvas#gameCanvas { height:62vh; }
+    }
+
+  </style>
 </head>
 <body>
-    <div class="arjs-loader" id="loader">
-        <div class="pulse">🥚 Писанка на долоні 🎨</div>
-        <div style="margin-top: 20px; font-size: 1.2em;">Наведи камеру на маркер! 😊🎨</div>
+
+  <!-- HUD: Play/Stop/Buttons -->
+  <div class="hud" role="toolbar" aria-label="controls">
+    <button id="btnPlay" class="btn small" title="Play video">▶ Play</button>
+    <button id="btnStop" class="btn small" title="Stop video">⏸ Stop</button>
+
+    <div style="width:8px"></div>
+
+    <button id="btnGame1" class="btn" title="Гра 1: Love Match">🎮 Гра 1</button>
+    <button id="btnGame2" class="btn" title="Гра 2: Славочка-пілот">🎮 Гра 2</button>
+  </div>
+
+  <!-- Center menu (shows after video ends or can be toggled) -->
+  <div id="menu" class="menu" aria-hidden="true">
+    <h3>Оберіть гру</h3>
+    <button id="menuGame1" class="btn small">❤️🪽 Love Match</button>
+    <button id="menuGame2" class="btn small">✈️ Славочка-пілот</button>
+    <div style="height:6px"></div>
+    <button id="menuBack" class="btn small">Повернутися до AR</button>
+  </div>
+
+  <!-- MindAR scene -->
+  <a-scene
+    mindar-image="imageTargetSrc: marker.mind; uiLoading: no; uiError: no;"
+    embedded
+    color-space="sRGB"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: true">
+
+    <a-assets>
+      <!-- video file (поклади video1.mp4 поруч із index.html) -->
+      <video id="video1" src="video1.mp4" crossorigin="anonymous" playsinline webkit-playsinline preload="auto" loop="false"></video>
+    </a-assets>
+
+    <!-- camera -->
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <!-- marker target: відео поверх маркера -->
+    <a-entity mindar-image-target="targetIndex: 0">
+
+      <!-- чорна площина з відео (розмір під маркер) -->
+      <a-plane id="videoPlane" position="0 0 0" rotation="0 0 0" width="1.5" height="0.85" material="shader: flat; src: #video1; transparent: false; opacity: 1" visible="true">
+      </a-plane>
+
+      <!-- декоративні золоті рамки/логотипи (можна розширити) -->
+      <a-entity position="0 0 -0.01">
+        <a-ring radius-inner="0.8" radius-outer="0.82" rotation="-90 0 0" color="#d4af37" visible="false" id="goldRing"></a-ring>
+      </a-entity>
+
+    </a-entity>
+
+  </a-scene>
+
+  <!-- Game overlay (single element reused for both games) -->
+  <div id="gameOverlay" class="game-overlay" role="dialog" aria-modal="true">
+    <div class="game-ui">
+      <div class="game-top">
+        <div class="label-gold" id="gameTitle">Гра</div>
+        <div class="timer" id="gameTimer"></div>
+      </div>
+
+      <canvas id="gameCanvas"></canvas>
+
+      <div class="victory" id="victoryText"></div>
+
+      <div style="height:12px"></div>
+      <div style="display:flex; gap:10px; justify-content:center;">
+        <button id="btnRestart" class="btn small">Перезапустити</button>
+        <button id="btnBackToAR" class="btn small">Повернутися до AR</button>
+      </div>
     </div>
+  </div>
 
-    <a-scene
-        mindar-image="imageTargetSrc: ./my-marker.mind;"
-        vr-mode-ui="enabled: false"
-        device-orientation-permission-ui="enabled: false"
-        loading-screen="enabled: false"
-        embedded
-        renderer="colorManagement: true; physicallyCorrectLights: true;"
-        touch-gestures
-    >
-        <a-assets>
-            <audio id="bg-music" src="./bg-music.mp3" preload="auto" loop></audio>
-            <img id="pisanka-texture" src="./pisanka.jpg">
-        </a-assets>
+  <!-- Scripts -->
+  <script>
+    // ---- Controls references ----
+    const videoEl = document.getElementById('video1');
+    const btnPlay = document.getElementById('btnPlay');
+    const btnStop = document.getElementById('btnStop');
+    const menu = document.getElementById('menu');
+    const btnGame1 = document.getElementById('btnGame1');
+    const btnGame2 = document.getElementById('btnGame2');
+    const menuGame1 = document.getElementById('menuGame1');
+    const menuGame2 = document.getElementById('menuGame2');
+    const menuBack = document.getElementById('menuBack');
 
-        <a-camera
-            id="camera"
-            position="0 0 1.5"
-            look-controls="enabled: false"
-        ></a-camera>
+    const gameOverlay = document.getElementById('gameOverlay');
+    const gameCanvas = document.getElementById('gameCanvas');
+    const gameTitle = document.getElementById('gameTitle');
+    const gameTimer = document.getElementById('gameTimer');
+    const victoryText = document.getElementById('victoryText');
+    const btnBackToAR = document.getElementById('btnBackToAR');
+    const btnRestart = document.getElementById('btnRestart');
 
-        <a-entity mindar-image-target="targetIndex: 0">
-            <a-sphere
-                id="pisanka"
-                position="0 0 -0.5"
-                radius="0.4"
-                scale="0.6 1 0.6"
-                src="#pisanka-texture"
-                visible="false"
-                material="opacity: 1; transparent: false"
-            >
-                <a-animation
-                    attribute="rotation"
-                    to="0 360 0"
-                    dur="5000"
-                    repeat="indefinite"
-                ></a-animation>
-            </a-sphere>
-        </a-entity>
-    </a-scene>
+    // For mobile autoplay gestures: user must interact to allow audio play.
+    function ensurePlayAllowed() {
+      // try to play and immediately pause to unlock audio
+      const p = videoEl.play();
+      if (p && p.then) {
+        p.then(()=> {
+          videoEl.pause();
+        }).catch(()=>{/* ignore */});
+      }
+    }
 
-    <div class="controls">
-        <button id="sound-btn" class="sound-btn">Увімкнути звук</button>
-        <a href="https://www.youtube.com/playlist?list=PL6UDFwT9TzFw5K8Tzu_OgsDz7vV3N9eY-" target="_blank" class="youtube-btn">YouTube SmartLessa</a>
-    </div>
+    // Hook play/stop to video element
+    btnPlay.addEventListener('click', ()=>{
+      // show video if hidden by mindar? The video plane displays it.
+      videoEl.play().catch(()=>{ /* play might be blocked until user gesture */ });
+    });
+    btnStop.addEventListener('click', ()=>{
+      videoEl.pause();
+      videoEl.currentTime = 0;
+      showMenu(); // show menu when stopped
+    });
 
-    <script>
-        // Адаптивність для повного екрану
-        function fixHeight() { 
-            document.body.style.height = window.innerHeight + 'px'; 
-        }
-        fixHeight();
-        window.addEventListener('resize', fixHeight);
+    // Show menu overlay
+    function showMenu(){
+      menu.style.display = 'flex';
+      menu.setAttribute('aria-hidden','false');
+    }
+    function hideMenu(){
+      menu.style.display = 'none';
+      menu.setAttribute('aria-hidden','true');
+    }
 
-        // Посилання на елементи
-        const loader = document.querySelector('#loader');
-        const targetEntity = document.querySelector('[mindar-image-target]');
-        const pisanka = document.querySelector('#pisanka');
-        const bgMusic = document.querySelector('#bg-music');
-        const soundBtn = document.querySelector('#sound-btn');
+    // MindAR events: show menu after video ended
+    videoEl.addEventListener('ended', ()=>{
+      showMenu();
+    });
 
-        // Перевірка завантаження текстури
-        const pisankaTexture = document.querySelector('#pisanka-texture');
-        if (pisankaTexture) {
-            pisankaTexture.addEventListener('load', () => {
-                console.log('Текстура pisanka.jpg успішно завантажена');
-            });
-            pisankaTexture.addEventListener('error', () => {
-                console.error('Помилка завантаження текстури pisanka.jpg');
-                if (pisanka) {
-                    pisanka.setAttribute('color', '#FF0000'); // Червоний колір як резервний
-                }
-            });
-        }
+    // When marker is found: make sure video plane visible; do not auto-play (user control)
+    const scene = document.querySelector('a-scene');
+    scene.addEventListener('renderstart', ()=> {
+      // unlock audio attempts
+      ensurePlayAllowed();
+    });
 
-        // Логіка відстеження маркера
-        if (targetEntity) {
-            targetEntity.addEventListener('targetFound', () => {
-                console.log("🎯 Маркер знайдено! Писанка з'явилася.");
-                loader.style.display = 'none';
-                if (pisanka) {
-                    pisanka.setAttribute('visible', 'true');
-                    console.log("Писанка видима:", pisanka.getAttribute('visible'));
-                    pisanka.components.animation.pause();
-                }
-                if (bgMusic && bgMusic.paused) {
-                    bgMusic.play().catch(e => console.log("🔇 Помилка відтворення музики:", e));
-                    soundBtn.classList.remove('off');
-                    soundBtn.textContent = 'Вимкнути звук';
-                }
-            });
+    scene.addEventListener('targetFound', (ev)=> {
+      // marker found: show a small gold ring animation briefly
+      const ring = document.getElementById('goldRing');
+      ring.setAttribute('visible', 'true');
+      setTimeout(()=> ring.setAttribute('visible','false'), 900);
+      // hide menu when marker found
+      hideMenu();
+    });
 
-            targetEntity.addEventListener('targetLost', () => {
-                console.log("ℹ️ Маркер втрачено.");
-                if (pisanka) {
-                    pisanka.setAttribute('visible', 'false');
-                    console.log("Писанка невидима:", pisanka.getAttribute('visible'));
-                    pisanka.components.animation.play();
-                }
-                if (bgMusic && !bgMusic.paused) bgMusic.pause();
-                loader.style.display = 'flex';
-                loader.querySelector('.pulse').textContent = '🥚 Писанка на долоні 🎨';
-                loader.querySelector('div[style]').textContent = 'Наведи камеру на маркер! 😊🎨';
-            });
+    scene.addEventListener('targetLost', (ev)=> {
+      // pause video when marker lost to avoid playing in background
+      if (!videoEl.paused) {
+        videoEl.pause();
+      }
+    });
+
+    // Buttons to open games
+    btnGame1.addEventListener('click', ()=> openGame('love'));
+    btnGame2.addEventListener('click', ()=> openGame('pilot'));
+    menuGame1.addEventListener('click', ()=> openGame('love'));
+    menuGame2.addEventListener('click', ()=> openGame('pilot'));
+    menuBack.addEventListener('click', ()=> {
+      hideMenu();
+    });
+
+    // Back to AR from in-game UI
+    btnBackToAR.addEventListener('click', closeGame);
+    btnRestart.addEventListener('click', ()=> {
+      if (currentGame === 'love') startLoveMatch();
+      if (currentGame === 'pilot') startPilot();
+    });
+
+    // ---- Game implementations ----
+    let currentGame = null;
+    let gameLoopHandle = null;
+    let pilotTimerHandle = null;
+    let pilotRemaining = 60;
+
+    function openGame(name) {
+      // Pause video and show game overlay
+      if (!videoEl.paused) {
+        videoEl.pause();
+      }
+      hideMenu();
+      currentGame = name;
+      gameOverlay.style.display = 'flex';
+      victoryText.style.display = 'none';
+      if (name === 'love') {
+        gameTitle.textContent = 'Love Match ❤️🪽';
+        startLoveMatch();
+      } else if (name === 'pilot') {
+        gameTitle.textContent = 'Славочка-пілот ✈️';
+        startPilot();
+      }
+    }
+
+    function closeGame(){
+      // clear loop
+      stopAllGameLoops();
+      gameOverlay.style.display = 'none';
+      currentGame = null;
+      victoryText.style.display = 'none';
+      // resume AR video paused at 0
+      // do not auto-play; user can Press Play
+    }
+
+    function stopAllGameLoops(){
+      if (gameLoopHandle) { cancelAnimationFrame(gameLoopHandle); gameLoopHandle = null; }
+      if (pilotTimerHandle) { clearInterval(pilotTimerHandle); pilotTimerHandle = null; }
+      // clear canvas
+      const ctx = gameCanvas.getContext('2d');
+      ctx && ctx.clearRect(0,0,gameCanvas.width,gameCanvas.height);
+    }
+
+    // adjust canvas size
+    function fitCanvas(){
+      const ratio = window.devicePixelRatio || 1;
+      const w = Math.min(window.innerWidth-40, 420);
+      const h = Math.round((w * 9)/16);
+      gameCanvas.style.width = w + 'px';
+      gameCanvas.style.height = (window.innerHeight * 0.62) + 'px';
+      gameCanvas.width = Math.round(w * ratio);
+      gameCanvas.height = Math.round((window.innerHeight * 0.62) * ratio);
+    }
+    window.addEventListener('resize', fitCanvas);
+    fitCanvas();
+
+    /* ----------------- Game 1: Love Match ----------------- */
+    // Mechanics:
+    // sequence player must tap: heart then wing then heart then wing ... (repeat)
+    // we'll show a stream of emojis one by one, user must tap when the correct one appears.
+    function startLoveMatch(){
+      stopAllGameLoops();
+      fitCanvas();
+      const ctx = gameCanvas.getContext('2d');
+      const sequence = ['❤️','🪽']; // alternating
+      let step = 0;
+      let score = 0;
+      let running = true;
+      let currentEmoji = null;
+      let appearInterval = 900; // ms
+
+      gameTimer.textContent = ''; // no timer for love match
+
+      // draw frame
+      function draw(){
+        ctx.clearRect(0,0,gameCanvas.width, gameCanvas.height);
+        // background subtle
+        ctx.fillStyle = '#050505';
+        ctx.fillRect(0,0,gameCanvas.width,gameCanvas.height);
+
+        // emoji in center
+        ctx.font = Math.round(gameCanvas.height * 0.35) + 'px serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#fff';
+        if (currentEmoji) {
+          // gold outline if correct
+          ctx.shadowColor = 'rgba(212,175,55,0.8)';
+          ctx.shadowBlur = 18;
+          ctx.fillText(currentEmoji, gameCanvas.width/2, gameCanvas.height/2);
+          ctx.shadowBlur = 0;
         } else {
-            console.error('Елемент mindar-image-target не знайдено!');
+          ctx.fillText('Готуйся...', gameCanvas.width/2, gameCanvas.height/2);
         }
 
-        // Обробка кнопки звуку
-        soundBtn.addEventListener('click', () => {
-            if (bgMusic.paused) {
-                bgMusic.play().catch(e => console.log("🔇 Помилка відтворення музики:", e));
-                soundBtn.classList.remove('off');
-                soundBtn.textContent = 'Вимкнути звук';
+        // score
+        ctx.font = Math.round(gameCanvas.height*0.05) + 'px sans-serif';
+        ctx.fillStyle = '#d4af37';
+        ctx.fillText('Score: ' + score, gameCanvas.width*0.5, gameCanvas.height*0.92);
+
+        gameLoopHandle = requestAnimationFrame(draw);
+      }
+
+      draw();
+
+      // appear cycle
+      let appearTimer = setInterval(()=> {
+        // choose random emoji: either heart or wing or distractors
+        const distractors = ['🎂','🍷','🌹','😂','🎁','🐱','✨'];
+        // 60% chance to show one of sequence targets, 40% distractor
+        if (Math.random() < 0.60) {
+          currentEmoji = sequence[step % sequence.length];
+        } else {
+          currentEmoji = distractors[Math.floor(Math.random()*distractors.length)];
+        }
+      }, appearInterval);
+
+      // handle taps
+      function onTap(e){
+        // get tap coordinates relative to canvas
+        const rect = gameCanvas.getBoundingClientRect();
+        // user tapped canvas: check currentEmoji
+        if (!currentEmoji) return;
+        const expected = sequence[step % sequence.length];
+        if (currentEmoji === expected) {
+          // correct
+          score += 1;
+          step += 1;
+          // small visual flash: set currentEmoji to trophy for a beat
+          const prev = currentEmoji;
+          currentEmoji = '✨';
+          setTimeout(()=> { currentEmoji = null; }, 220);
+        } else {
+          // incorrect: small penalty
+          score = Math.max(0, score-1);
+          // show red cross briefly
+          const prev = currentEmoji;
+          currentEmoji = '❌';
+          setTimeout(()=> { currentEmoji = null; }, 300);
+        }
+        // check victory: if score >= 8 (for quick win)
+        if (score >= 8) {
+          // show couple with wings
+          clearInterval(appearTimer);
+          gameCanvas.removeEventListener('pointerdown', onTap);
+          cancelAnimationFrame(gameLoopHandle);
+          currentEmoji = null;
+          showLoveVictory();
+        }
+      }
+
+      gameCanvas.addEventListener('pointerdown', onTap);
+
+      function showLoveVictory(){
+        // draw couple and gold text
+        const ctx = gameCanvas.getContext('2d');
+        ctx.clearRect(0,0,gameCanvas.width,gameCanvas.height);
+        ctx.fillStyle = '#030303';
+        ctx.fillRect(0,0,gameCanvas.width,gameCanvas.height);
+        ctx.font = Math.round(gameCanvas.height*0.26) + 'px serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#d4af37';
+        ctx.fillText('👩‍❤️‍👨🪽', gameCanvas.width/2, gameCanvas.height/2 - 20);
+        ctx.font = Math.round(gameCanvas.height*0.06) + 'px sans-serif';
+        ctx.fillText('Аня надає крила Славочку!', gameCanvas.width/2, gameCanvas.height/2 + gameCanvas.height*0.2);
+        victoryText.style.display = 'block';
+        victoryText.textContent = 'Аня надає крила Славочку 💕';
+      }
+
+      // cleanup on leaving
+      gameLoopHandle = gameLoopHandle; // already set
+      // store cleanup closure
+      gameOverlay._cleanup = function(){
+        clearInterval(appearTimer);
+        gameCanvas.removeEventListener('pointerdown', onTap);
+      };
+    }
+
+    /* ----------------- Game 2: Pilot ----------------- */
+    function startPilot(){
+      stopAllGameLoops();
+      fitCanvas();
+      const ctx = gameCanvas.getContext('2d');
+      gameTimer.textContent = '60s';
+      pilotRemaining = 60;
+      let pilotY = gameCanvas.height * 0.84; // bottom
+      let pilotX = gameCanvas.width * 0.12;
+      let speedUp = -18; // upward delta when catching wing
+      let gravity = 2.2;
+      let vy = 0;
+      let caught = 0;
+      let requiredToWin = 8; // target wings to trigger "Поцілуй Аню"
+      let fallingEmojis = []; // {emoji, x, y, size, vy}
+      const allEmojis = ['🪽','🎂','🍷','🐱','🌹','🎁','✨','💍','🍾','🎉','💼','📱','🌟','🕶️','🍫'];
+      // spawn up to 15 unique (or repeating) emojis
+      function spawnEmoji(){
+        if (fallingEmojis.length >= 8) return;
+        const e = allEmojis[Math.floor(Math.random()*allEmojis.length)];
+        const size = Math.round(Math.random()*(gameCanvas.height*0.09) + gameCanvas.height*0.05);
+        const x = Math.random()*(gameCanvas.width*0.8) + gameCanvas.width*0.1;
+        fallingEmojis.push({ emoji: e, x: x, y: -size, size: size, vy: Math.random()*1.2 + 0.8});
+      }
+
+      // initial spawn several
+      for (let i=0;i<8;i++) spawnEmoji();
+
+      // draw loop
+      function draw(){
+        ctx.clearRect(0,0,gameCanvas.width, gameCanvas.height);
+        // BG
+        ctx.fillStyle = '#040404';
+        ctx.fillRect(0,0,gameCanvas.width, gameCanvas.height);
+
+        // draw falling emojis
+        ctx.font = '40px serif';
+        for (let i=fallingEmojis.length-1;i>=0;i--){
+          const f = fallingEmojis[i];
+          f.y += f.vy * 1.6;
+          // draw
+          ctx.font = Math.round(f.size) + 'px serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(f.emoji, f.x, f.y + f.size*0.5);
+          // remove if off screen
+          if (f.y > gameCanvas.height + 80) {
+            fallingEmojis.splice(i,1);
+          }
+        }
+
+        // spawn occasionally
+        if (Math.random() < 0.04) spawnEmoji();
+
+        // update pilot physics
+        vy += gravity;
+        pilotY += vy;
+        // floor bound
+        const floorY = gameCanvas.height * 0.84;
+        if (pilotY > floorY) { pilotY = floorY; vy = 0; }
+
+        // draw pilot (emoji)
+        const pilotSize = Math.round(gameCanvas.height*0.10);
+        ctx.font = pilotSize + 'px serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('👨', pilotX, pilotY);
+
+        // draw score
+        ctx.font = Math.round(gameCanvas.height*0.045) + 'px sans-serif';
+        ctx.fillStyle = '#d4af37';
+        ctx.fillText('Крила: ' + caught, gameCanvas.width*0.85, gameCanvas.height*0.08);
+
+        gameLoopHandle = requestAnimationFrame(draw);
+      }
+      draw();
+
+      // timer tick
+      gameTimer.textContent = pilotRemaining + 's';
+      pilotTimerHandle = setInterval(()=> {
+        pilotRemaining -= 1;
+        gameTimer.textContent = pilotRemaining + 's';
+        if (pilotRemaining <= 0) {
+          clearInterval(pilotTimerHandle);
+          pilotTimerHandle = null;
+          endPilot();
+        }
+      }, 1000);
+
+      // handle taps: detect which emoji tapped; if it's 🪽 => apply upward impulse
+      function onTap(e){
+        const rect = gameCanvas.getBoundingClientRect();
+        const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+        const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+        // find topmost emoji under tap
+        for (let i = fallingEmojis.length-1; i >=0; i--){
+          const f = fallingEmojis[i];
+          const fx = f.x;
+          const fy = f.y + f.size*0.5;
+          const r = Math.max(f.size*0.6, 28);
+          if (Math.hypot(x - fx, y - fy) < r) {
+            // tapped this emoji
+            const tapped = f.emoji;
+            fallingEmojis.splice(i,1);
+            if (tapped === '🪽') {
+              // success
+              caught += 1;
+              vy = speedUp; // impulse upward
+              // sparkle
+              flashText('+1 wing');
             } else {
-                bgMusic.pause();
-                soundBtn.classList.add('off');
-                soundBtn.textContent = 'Увімкнути звук';
+              // wrong tap -> small penalty: slight push down
+              vy += 6;
+              flashText('Не те!');
             }
-        });
+            break;
+          }
+        }
+      }
 
-        // Компонент для обробки сенсорних жестів
-        AFRAME.registerComponent('touch-gestures', {
-            schema: {
-                minScale: { type: 'number', default: 0.2 },
-                maxScale: { type: 'number', default: 3.0 },
-                rotationSpeed: { type: 'number', default: 2.0 }
-            },
-            init: function () {
-                this.isRotating = false;
-                this.isPinching = false;
-                this.startPos = { x: 0, y: 0 };
-                this.currentScale = 1;
-                this.pisanka = document.querySelector('#pisanka');
+      function flashText(txt){
+        victoryText.style.display = 'block';
+        victoryText.style.color = '#d4af37';
+        victoryText.textContent = txt;
+        setTimeout(()=> { victoryText.style.display = 'none'; }, 700);
+      }
 
-                if (!this.pisanka) {
-                    console.error('Писанка не знайдена в компоненті touch-gestures');
-                    return;
-                }
+      gameCanvas.addEventListener('pointerdown', onTap);
 
-                console.log('Компонент touch-gestures ініціалізовано');
+      function endPilot(){
+        gameCanvas.removeEventListener('pointerdown', onTap);
+        cancelAnimationFrame(gameLoopHandle);
+        // victory check
+        if (caught >= requiredToWin) {
+          // success: show kiss prompt
+          showPilotVictory();
+        } else {
+          // lose: show consolation
+          victoryText.style.display = 'block';
+          victoryText.style.color = '#fff';
+          victoryText.textContent = 'Гра закінчилась — спробуй ще раз!';
+        }
+      }
 
-                this.el.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    console.log('touchstart triggered, touches:', e.touches.length);
-                    if (e.touches.length === 1) {
-                        this.isRotating = true;
-                        this.startPos.x = e.touches[0].pageX;
-                        this.startPos.y = e.touches[0].pageY;
-                        console.log('Початок обертання, позиція:', this.startPos);
-                    } else if (e.touches.length === 2) {
-                        this.isPinching = true;
-                        this.isRotating = false;
-                        this.initialDistance = Math.hypot(
-                            e.touches[0].pageX - e.touches[1].pageX,
-                            e.touches[0].pageY - e.touches[1].pageY
-                        );
-                        this.currentScale = this.pisanka.object3D.scale.x;
-                        console.log('Початок масштабування, відстань:', this.initialDistance, 'початковий масштаб:', this.currentScale);
-                    }
-                });
+      function showPilotVictory(){
+        // show golden text "Поцілуй Аню"
+        ctx.clearRect(0,0,gameCanvas.width, gameCanvas.height);
+        ctx.fillStyle = '#030303';
+        ctx.fillRect(0,0,gameCanvas.width,gameCanvas.height);
+        ctx.font = Math.round(gameCanvas.height*0.22) + 'px serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#d4af37';
+        ctx.fillText('💋', gameCanvas.width/2, gameCanvas.height*0.44);
+        ctx.font = Math.round(gameCanvas.height*0.06) + 'px sans-serif';
+        ctx.fillText('Поцілуй Аню', gameCanvas.width/2, gameCanvas.height*0.68);
+        victoryText.style.display = 'block';
+        victoryText.style.color = '#d4af37';
+        victoryText.textContent = 'Поцілуй Аню 😘';
+      }
 
-                this.el.addEventListener('touchmove', (e) => {
-                    e.preventDefault();
-                    console.log('touchmove triggered, touches:', e.touches.length);
-                    if (this.isPinching && e.touches.length === 2) {
-                        const currentDistance = Math.hypot(
-                            e.touches[0].pageX - e.touches[1].pageX,
-                            e.touches[0].pageY - e.touches[1].pageY
-                        );
-                        const scaleFactor = currentDistance / this.initialDistance;
-                        const newScale = Math.max(this.data.minScale, Math.min(this.data.maxScale, this.currentScale * scaleFactor));
-                        // Зберігаємо пропорцію яйця (0.6:1:0.6)
-                        const eggScaleX = newScale * 0.6;
-                        const eggScaleY = newScale * 1;
-                        const eggScaleZ = newScale * 0.6;
-                        this.pisanka.object3D.scale.set(eggScaleX, eggScaleY, eggScaleZ);
-                        console.log('Масштабування, новий масштаб:', { x: eggScaleX, y: eggScaleY, z: eggScaleZ });
-                    } else if (this.isRotating && e.touches.length === 1) {
-                        const deltaX = (e.touches[0].pageX - this.startPos.x) * this.data.rotationSpeed;
-                        const deltaY = (e.touches[0].pageY - this.startPos.y) * this.data.rotationSpeed;
-                        this.pisanka.object3D.rotation.y += THREE.MathUtils.degToRad(deltaX);
-                        this.pisanka.object3D.rotation.x += THREE.MathUtils.degToRad(deltaY);
-                        this.startPos.x = e.touches[0].pageX;
-                        this.startPos.y = e.touches[0].pageY;
-                        console.log('Обертання, deltaX:', deltaX, 'deltaY:', deltaY);
-                    }
-                });
+      // store cleanup
+      gameOverlay._cleanup = function(){
+        clearInterval(pilotTimerHandle);
+        pilotTimerHandle = null;
+        gameCanvas.removeEventListener('pointerdown', onTap);
+      };
+    }
 
-                this.el.addEventListener('touchend', () => {
-                    console.log('touchend triggered');
-                    this.isRotating = false;
-                    this.isPinching = false;
-                });
-            }
-        });
-    </script>
+    // When closing or switching games, call cleanup
+    const origClose = closeGame;
+    function closeGame(){
+      if (gameOverlay._cleanup) {
+        try { gameOverlay._cleanup(); } catch(e) {}
+        gameOverlay._cleanup = null;
+      }
+      stopAllGameLoops();
+      gameOverlay.style.display = 'none';
+      currentGame = null;
+      victoryText.style.display = 'none';
+    }
+    // Overwrite exported ref
+    window.closeGame = closeGame;
+
+    // init: hide menu until video ends or user stops
+    hideMenu();
+
+    // accessibility / hint: if user taps video plane (A-Frame), toggle play
+    // We'll listen for clicks on the DOM video element as well
+    // But some platforms block direct A-Frame plane clicks; keep a fallback: clicking anywhere when marker visible toggles.
+    document.addEventListener('visibilitychange', ()=> {
+      if (document.hidden) {
+        if (!videoEl.paused) videoEl.pause();
+      }
+    });
+
+    // small UX: if user presses Play and marker not found, still play audio/video but plane will show when marker found
+    // ensure tapping viewport can start audio on mobile: initial gesture
+    document.body.addEventListener('pointerdown', function _initAudioOnce(){
+      ensurePlayAllowed();
+      document.body.removeEventListener('pointerdown', _initAudioOnce);
+    });
+
+    // end of script
+  </script>
 </body>
 </html>
