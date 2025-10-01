@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
-  <title>Аня надає крила — AR привітання</title>
+  <title>Аня </title>
 
   <!-- Шрифт Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -182,7 +182,7 @@
   <div id="menu" class="menu" aria-hidden="true">
     <h3>Оберіть гру</h3>
     <button id="menuGame1" class="btn small" aria-label="Гра Love Match">❤️🪽 Love Match</button>
-    <button id="menuGame2" class="btn small" aria-label="Гра Славочка-пілот">✈️ Славочка-пілот</button>
+    <button id="menuGame2" class="btn small" aria-label="Гра Аня надає крила">🪽 Аня </button>
     <div style="height:6px"></div>
     <button id="menuBack" class="btn small">Повернутися до AR</button>
   </div>
@@ -233,7 +233,7 @@
   </div>
 
   <!-- Підказка про маркер -->
-  <div id="markerHint">Направте камеру на маркер 🪽</div>
+  <div id="markerHint">Направте камеру на фото 🪽</div>
 
   <!-- Scripts -->
   <script>
@@ -650,10 +650,10 @@
         ctx.fillStyle = '#d4af37';
         ctx.fillText('💋', gameCanvas.width/2, gameCanvas.height*0.44);
         ctx.font = Math.round(gameCanvas.height*0.06) + 'px sans-serif';
-        ctx.fillText('Поцілуй Аню', gameCanvas.width/2, gameCanvas.height*0.68);
+        ctx.fillText('Привітай і поцілуй Аню', gameCanvas.width/2, gameCanvas.height*0.68);
         victoryText.style.display = 'block';
         victoryText.style.color = '#d4af37';
-        victoryText.textContent = 'Поцілуй Аню 😘';
+        victoryText.textContent = 'Привітай і поцілуй Аню 😘';
       }
 
       gameOverlay._cleanup = function(){
@@ -680,3 +680,4 @@
   </script>
 </body>
 </html>
+
