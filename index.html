@@ -116,29 +116,36 @@
             display: block;
         }
 
-        /* Кнопки контролю відео */
+        /* Кнопки контролю відео - АДАПТИВНІ */
         .video-controls {
             position: fixed;
-            bottom: 80px;
+            bottom: 100px; /* Вище від нижнього краю */
             left: 50%;
             transform: translateX(-50%);
             z-index: 35;
             display: flex;
-            gap: 10px;
+            gap: 12px;
             pointer-events: auto;
+            padding: 0 20px;
+            width: 100%;
+            max-width: 400px;
+            justify-content: center;
         }
 
         .video-btn {
-            background: rgba(212, 175, 55, 0.8);
+            background: rgba(212, 175, 55, 0.9);
             color: #000;
             border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
+            padding: 12px 20px;
+            border-radius: 12px;
             font-family: Inter, sans-serif;
-            font-weight: 600;
-            font-size: 14px;
+            font-weight: 700;
+            font-size: 16px;
             cursor: pointer;
             transition: all 0.3s ease;
+            min-width: 140px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            touch-action: manipulation;
         }
 
         .video-btn:hover {
@@ -151,12 +158,74 @@
         }
 
         .sound-btn {
-            background: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.9);
             color: #000;
         }
 
         .sound-btn.on {
-            background: rgba(212, 175, 55, 0.9);
+            background: rgba(212, 175, 55, 0.95);
+        }
+
+        /* Адаптація для маленьких екранів */
+        @media (max-width: 480px) {
+            .video-controls {
+                bottom: 90px;
+                gap: 10px;
+                padding: 0 15px;
+            }
+            
+            .video-btn {
+                padding: 14px 16px;
+                font-size: 15px;
+                min-width: 130px;
+                border-radius: 10px;
+            }
+            
+            .hud {
+                top: 10px;
+            }
+            
+            .instructions {
+                font-size: 14px;
+                padding: 5px 10px;
+            }
+            
+            .score {
+                font-size: 16px;
+                padding: 5px 12px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .video-controls {
+                flex-direction: column;
+                align-items: center;
+                bottom: 80px;
+                gap: 8px;
+            }
+            
+            .video-btn {
+                width: 90%;
+                max-width: 200px;
+                padding: 12px;
+                font-size: 14px;
+            }
+        }
+
+        /* Для дуже високих екранів */
+        @media (min-height: 800px) {
+            .video-controls {
+                bottom: 120px;
+            }
+        }
+
+        /* Запобігання виділенню тексту на кнопках */
+        .video-btn {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
     </style>
 </head>
@@ -245,6 +314,11 @@
                 soundBtn.textContent = '🔊 Вимк. звук';
                 soundBtn.classList.add('on');
                 showFeedback('Звук увімкнено 🔊', true);
+                
+                // Спроба відтворення звуку (для політики браузера)
+                videoEl.play().catch(e => {
+                    console.log("Sound play error:", e);
+                });
             } else {
                 soundBtn.textContent = '🔇 Увімк. звук';
                 soundBtn.classList.remove('on');
@@ -254,14 +328,9 @@
 
         // Перегравітування відео
         function replayVideo() {
-            if (videoEl.paused) {
-                videoEl.play().catch(e => console.log("Play error:", e));
-                showFeedback('Відео програється ▶️', true);
-            } else {
-                videoEl.currentTime = 0;
-                videoEl.play().catch(e => console.log("Play error:", e));
-                showFeedback('Відео перезапущено 🔄', true);
-            }
+            videoEl.currentTime = 0;
+            videoEl.play().catch(e => console.log("Play error:", e));
+            showFeedback('Відео перезапущено 🔄', true);
         }
 
         // Показати підказку
@@ -420,6 +489,19 @@
         replayBtn.addEventListener('click', replayVideo);
         soundBtn.addEventListener('click', toggleSound);
 
+        // Запобігання стандартній поведінці для кнопок
+        [replayBtn, soundBtn].forEach(btn => {
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, { passive: false });
+            
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, { passive: false });
+        });
+
         // Початкова підказка
         setTimeout(() => markerHint.style.display = 'none', 4000);
         
@@ -431,6 +513,14 @@
         // Коли відео закінчується - показуємо підказку
         videoEl.addEventListener('ended', () => {
             showFeedback('Відео завершено! Можете переглянути ще раз ▶️', true);
+        });
+
+        // Автоматична адаптація висоти кнопок при завантаженні
+        window.addEventListener('load', () => {
+            const screenHeight = window.innerHeight;
+            if (screenHeight < 600) {
+                videoControls.style.bottom = '70px';
+            }
         });
     </script>
 </body>
