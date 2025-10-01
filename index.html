@@ -200,10 +200,10 @@
             transform: scale(1.05);
         }
 
-        /* Marker Hint */
+        /* Marker Hint — завжди вище за кнопки */
         #markerHint {
             position: fixed;
-            bottom: calc(80px + env(safe-area-inset-bottom, 20px));
+            bottom: 160px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.8);
@@ -225,7 +225,7 @@
             pointer-events: none;
         }
 
-        /* Video Controls — АДАПТИВНІ КНОПКИ */
+        /* Video Controls — ГАРАНТОВАНО ВИДИМІ */
         .video-controls {
             position: fixed;
             left: 50%;
@@ -240,7 +240,13 @@
             justify-content: center;
             opacity: 0;
             transition: opacity 0.3s ease;
-            bottom: calc(20px + env(safe-area-inset-bottom, 16px));
+            bottom: 100px;
+        }
+
+        @media (max-height: 700px) {
+            .video-controls {
+                bottom: 90px;
+            }
         }
 
         @media (max-height: 650px) {
@@ -249,7 +255,7 @@
                 align-items: center;
                 gap: 12px;
                 max-width: 300px;
-                bottom: calc(16px + env(safe-area-inset-bottom, 12px));
+                bottom: 80px;
             }
             .video-btn {
                 width: 100%;
@@ -257,16 +263,22 @@
                 padding: 14px;
                 font-size: 16px;
             }
+            #markerHint {
+                bottom: 140px;
+            }
         }
 
         @media (max-height: 600px) {
             .video-controls {
-                bottom: calc(12px + env(safe-area-inset-bottom, 10px));
+                bottom: 70px;
                 gap: 10px;
             }
             .video-btn {
                 padding: 12px;
                 font-size: 15px;
+            }
+            #markerHint {
+                bottom: 130px;
             }
         }
 
@@ -379,10 +391,11 @@
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0">
+            <!-- Відео "у повітрі", збільшене в 2 рази, прозорий фон -->
             <a-video
                 src="#video1"
-                width="0.85"
-                height="1.5"
+                width="1.7"
+                height="3.0"
                 position="0 0 0"
                 visible="false"
                 id="videoEntity">
@@ -706,3 +719,4 @@
     </script>
 </body>
 </html>
+
