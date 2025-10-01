@@ -228,116 +228,59 @@
         opacity: 0;
         pointer-events: none;
     }
-
-/* Video Controls — ПІДНЯЛИ ВИЩЕ */
+/* Video Controls — тепер у ВЕРХНЬОМУ ПРАВОМУ КУТІ */
 .video-controls {
     position: fixed;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 16px;          /* Відступ зверху */
+    right: 16px;        /* Відступ справа */
     z-index: 35;
     display: flex;
-    gap: 16px;
+    flex-direction: column; /* Вертикально */
+    gap: 10px;
     pointer-events: auto;
-    padding: 0 20px;
-    width: 100%;
-    max-width: 400px;
-    justify-content: center;
+    width: auto;
+    max-width: none;
     opacity: 0;
     transition: opacity 0.3s ease;
-    bottom: calc(40px + env(safe-area-inset-bottom, 20px));
 }
 
-@media (max-height: 700px) {
-    .video-controls {
-        bottom: calc(30px + env(safe-area-inset-bottom, 20px));
-    }
+.video-controls.visible {
+    opacity: 1;
 }
 
-@media (max-height: 650px) {
-    .video-controls {
-        flex-direction: column;
-        align-items: center;
-        gap: 12px;
-        max-width: 300px;
-        bottom: calc(20px + env(safe-area-inset-bottom, 20px));
-    }
-    .video-btn {
-        width: 100%;
-        max-width: 280px;
-        padding: 14px;
-        font-size: 16px;
-    }
-    #markerHint {
-        bottom: calc(80px + env(safe-area-inset-bottom, 20px));
-    }
+.video-btn {
+    background: rgba(212, 175, 55, 0.95);
+    color: #000;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
-@media (max-height: 600px) {
-    .video-controls {
-        bottom: calc(10px + env(safe-area-inset-bottom, 20px));
-        gap: 10px;
-    }
-    .video-btn {
-        padding: 12px;
-        font-size: 15px;
-    }
-    #markerHint {
-        bottom: calc(60px + env(safe-area-inset-bottom, 20px));
-    }
+.video-btn:hover {
+    background: rgba(212, 175, 55, 1);
+    transform: scale(1.03);
 }
-    }
 
-    @media (max-height: 600px) {
-        .video-controls {
-            bottom: calc(50px + env(safe-area-inset-bottom, 20px));
-            gap: 10px;
-        }
-        .video-btn {
-            padding: 12px;
-            font-size: 15px;
-        }
-        #markerHint {
-            bottom: calc(100px + env(safe-area-inset-bottom, 20px));
-        }
-    }
+.video-btn:active {
+    transform: scale(0.98);
+}
 
-    .video-controls.visible {
-        opacity: 1;
-    }
+.sound-btn {
+    background: rgba(255, 255, 255, 0.9);
+}
 
-    .video-btn {
-        background: rgba(212, 175, 55, 0.95);
-        color: #000;
-        border: none;
-        padding: 14px 24px;
-        border-radius: 14px;
-        font-family: 'Inter', sans-serif;
-        font-weight: 700;
-        font-size: 16px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        min-width: 150px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-        touch-action: manipulation;
-        -webkit-tap-highlight-color: transparent;
-    }
-
-    .video-btn:hover {
-        background: rgba(212, 175, 55, 1);
-        transform: scale(1.05);
-    }
-
-    .video-btn:active {
-        transform: scale(0.95);
-    }
-
-    .sound-btn {
-        background: rgba(255, 255, 255, 0.9);
-    }
-
-    .sound-btn.on {
-        background: rgba(212, 175, 55, 0.95);
-    }
+.sound-btn.on {
+    background: rgba(212, 175, 55, 0.95);
+}
 
     /* Error Screen — залишаємо чорним, бо це помилка */
     .error-screen {
@@ -437,7 +380,7 @@
     <!-- Victory Screen -->
     <div class="victory" id="victory">
         <div class="victory-message">Аня надає крила! 💋</div>
-        <div>Ти зібрав усі крила!</div>
+        <div>Ти зібрав усі крила!Привітай Ану!</div>
         <button class="continue-btn" id="continueBtn">Грати ще раз</button>
     </div>
 
@@ -764,4 +707,5 @@
     </script>
 </body>
 </html>
+
 
