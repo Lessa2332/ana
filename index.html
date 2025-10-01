@@ -2,8 +2,8 @@
 <html lang="uk">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
-  <title>Аня </title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Аня</title>
 
   <!-- Шрифт Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,24 +11,26 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 
   <!-- A-Frame + MindAR -->
-  <script src="https://cdn.jsdelivr.net/npm/aframe@1.5.0/dist/aframe.min.js"></script>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    :root{
+    :root {
       --gold: #d4af37;
       --black: #0b0b0b;
-      --glass: rgba(255,255,255,0.03);
+      --glass: rgba(255, 255, 255, 0.03);
       --text: #f7f3f0;
     }
-    html,body{
-      height:100%;
-      margin:0;
-      background:var(--black);
-      color:var(--text);
-      font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--black);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow: hidden;
+      touch-action: none;
     }
 
     /* Top HUD */
@@ -38,30 +40,30 @@
       transform: translateX(-50%);
       top: 12px;
       z-index: 40;
-      display:flex;
-      gap:10px;
-      align-items:center;
+      display: flex;
+      gap: 10px;
+      align-items: center;
       pointer-events: auto;
     }
     .btn {
-      background: linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.35));
-      border: 1px solid rgba(212,175,55,0.15);
-      padding:8px 12px;
-      border-radius:10px;
-      color:var(--gold);
-      box-shadow: 0 6px 18px rgba(0,0,0,0.6);
-      font-weight:600;
-      cursor:pointer;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.35));
+      border: 1px solid rgba(212, 175, 55, 0.15);
+      padding: 8px 12px;
+      border-radius: 10px;
+      color: var(--gold);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+      font-weight: 600;
+      cursor: pointer;
       backdrop-filter: blur(6px);
-      display:flex;
-      gap:8px;
-      align-items:center;
+      display: flex;
+      gap: 8px;
+      align-items: center;
     }
-    .btn.small { padding:6px 10px; font-size:14px; border-radius:8px;}
+    .btn.small { padding: 6px 10px; font-size: 14px; border-radius: 8px; }
     .btn.gold {
-      background: linear-gradient(90deg, rgba(212,175,55,0.12), rgba(212,175,55,0.06));
-      color:var(--black);
-      border:1px solid rgba(212,175,55,0.95);
+      background: linear-gradient(90deg, rgba(212, 175, 55, 0.12), rgba(212, 175, 55, 0.06));
+      color: var(--black);
+      border: 1px solid rgba(212, 175, 55, 0.95);
     }
 
     /* Center menu shown after video */
@@ -69,84 +71,106 @@
       position: fixed;
       left: 50%;
       top: 60%;
-      transform: translate(-50%,-50%);
+      transform: translate(-50%, -50%);
       z-index: 40;
-      display:none;
-      gap:12px;
-      flex-direction:column;
-      align-items:center;
-      background: linear-gradient(180deg, rgba(11,11,11,0.85), rgba(11,11,11,0.6));
-      border: 1px solid rgba(212,175,55,0.12);
-      padding:16px;
-      border-radius:12px;
-      min-width:220px;
-      text-align:center;
+      display: none;
+      gap: 12px;
+      flex-direction: column;
+      align-items: center;
+      background: linear-gradient(180deg, rgba(11, 11, 11, 0.85), rgba(11, 11, 11, 0.6));
+      border: 1px solid rgba(212, 175, 55, 0.12);
+      padding: 16px;
+      border-radius: 12px;
+      min-width: 220px;
+      text-align: center;
     }
-    .menu h3 { margin:4px 0 8px 0; color:var(--gold);}
+    .menu h3 { margin: 4px 0 8px 0; color: var(--gold); }
 
     /* Game overlay full-screen */
     .game-overlay {
       position: fixed;
-      inset:0;
-      background: linear-gradient(180deg, rgba(0,0,0,0.88), rgba(6,6,6,0.96));
+      inset: 0;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.88), rgba(6, 6, 6, 0.96));
       z-index: 60;
-      display:none;
-      align-items:center;
-      justify-content:center;
-      color:var(--text);
-      padding:20px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+      padding: 20px;
     }
     .game-ui {
-      width:100%;
-      max-width:420px;
-      margin:0 auto;
-      text-align:center;
+      width: 100%;
+      max-width: 420px;
+      margin: 0 auto;
+      text-align: center;
     }
     .game-top {
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:10px;
-      margin-bottom:8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
     }
     .timer {
-      color:var(--gold);
-      font-weight:700;
+      color: var(--gold);
+      font-weight: 700;
     }
 
     /* Canvas style — прозорий фон! */
     canvas#gameCanvas {
-      width:100%;
+      width: 100%;
       height: 70vh;
-      border-radius:10px;
+      border-radius: 10px;
       background: transparent;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
       touch-action: none;
     }
 
     /* Small gold label */
     .label-gold {
-      display:inline-block;
-      color:var(--gold);
-      font-weight:700;
-      font-size:14px;
+      display: inline-block;
+      color: var(--gold);
+      font-weight: 700;
+      font-size: 14px;
     }
 
     /* Victory popup */
     .victory {
-      margin-top:12px;
-      display:none;
-      color:var(--gold);
-      font-weight:800;
-      font-size:18px;
+      margin-top: 12px;
+      display: none;
+      color: var(--gold);
+      font-weight: 800;
+      font-size: 18px;
     }
 
     /* Mobile adjustments */
-    @media (max-width:480px){
-      .hud { top:6px; gap:6px; }
-      .menu { top:58%; min-width:180px;}
-      canvas#gameCanvas { height:62vh; }
+    @media (max-width: 480px) {
+      .hud { top: 6px; gap: 6px; }
+      .menu { top: 58%; min-width: 180px; }
+      canvas#gameCanvas { height: 62vh; }
     }
+
+    /* Лоадер */
+    .arjs-loader {
+      height: 100%;
+      width: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      background: rgba(135, 206, 235, 0.95);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #d4af37;
+      font-size: 1.8em;
+      text-align: center;
+      padding: 20px;
+      font-family: Inter, sans-serif;
+    }
+    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+    .pulse { animation: pulse 1.5s infinite; }
 
     /* Повідомлення про маркер */
     #markerHint {
@@ -154,7 +178,7 @@
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0,0,0,0.7);
+      background: rgba(0, 0, 0, 0.7);
       color: var(--gold);
       padding: 8px 16px;
       border-radius: 8px;
@@ -167,36 +191,43 @@
 </head>
 <body>
 
+  <!-- Лоадер -->
+  <div class="arjs-loader" id="loader">
+    <div class="pulse">✨ Аня AR-візитка ✨</div>
+    <div style="margin-top: 20px; font-size: 1.2em;">Наведіть камеру на маркер! 😊</div>
+  </div>
+
   <!-- HUD: Play/Stop/Buttons -->
   <div class="hud" role="toolbar" aria-label="controls">
     <button type="button" id="btnPlay" class="btn small" title="Play video">▶ Play</button>
     <button type="button" id="btnStop" class="btn small" title="Stop video">⏸ Stop</button>
-
-    <div style="width:8px"></div>
-
+    <div style="width: 8px"></div>
     <button type="button" id="btnGame1" class="btn" title="Гра 1: Love Match">🎮 Гра 1</button>
-    <button type="button" id="btnGame2" class="btn" title="Гра 2: Славочка-пілот">🎮 Гра 2</button>
+    <button type="button" id="btnGame2" class="btn" title="Гра 2: Аня надає крила">🎮 Гра 2</button>
   </div>
 
   <!-- Center menu -->
   <div id="menu" class="menu" aria-hidden="true">
     <h3>Оберіть гру</h3>
     <button type="button" id="menuGame1" class="btn small" aria-label="Гра Love Match">❤️🪽 Love Match</button>
-    <button type="button" id="menuGame2" class="btn small" aria-label="Гра Аня надає крила">🪽 Аня </button>
-    <div style="height:6px"></div>
+    <button type="button" id="menuGame2" class="btn small" aria-label="Гра Аня надає крила">🪽 Аня надає крила</button>
+    <div style="height: 6px"></div>
     <button type="button" id="menuBack" class="btn small">Повернутися до AR</button>
   </div>
 
   <!-- MindAR scene -->
   <a-scene
-    mindar-image="imageTargetSrc: marker.mind; uiLoading: no; uiError: no;"
+    mindar-image="imageTargetSrc: marker.mind; autoStart: true; uiLoading: no; uiError: no;"
     embedded
     color-space="sRGB"
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: true">
 
     <a-assets>
-      <video id="video1" src="video1.mp4" muted crossorigin="anonymous" playsinline webkit-playsinline preload="auto" loop="false"></video>
+      <video id="video1" src="video1.mp4" muted crossorigin="anonymous" playsinline webkit-playsinline preload="auto" loop="false">
+        <source src="video1.mp4" type="video/mp4">
+        <source src="video1.webm" type="video/webm">
+      </video>
     </a-assets>
 
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
@@ -204,12 +235,10 @@
     <a-entity mindar-image-target="targetIndex: 0">
       <!-- Відео приховано спочатку -->
       <a-plane id="videoPlane" position="0 0 0" rotation="0 0 0" width="1.5" height="0.85" material="shader: flat; src: #video1; transparent: false; opacity: 1" visible="false"></a-plane>
-
       <a-entity position="0 0 -0.01">
         <a-ring radius-inner="0.8" radius-outer="0.82" rotation="-90 0 0" color="#d4af37" visible="false" id="goldRing"></a-ring>
       </a-entity>
     </a-entity>
-
   </a-scene>
 
   <!-- Game overlay -->
@@ -219,13 +248,10 @@
         <div class="label-gold" id="gameTitle">Гра</div>
         <div class="timer" id="gameTimer"></div>
       </div>
-
       <canvas id="gameCanvas"></canvas>
-
       <div class="victory" id="victoryText"></div>
-
-      <div style="height:12px"></div>
-      <div style="display:flex; gap:10px; justify-content:center;">
+      <div style="height: 12px"></div>
+      <div style="display: flex; gap: 10px; justify-content: center;">
         <button type="button" id="btnRestart" class="btn small">Перезапустити</button>
         <button type="button" id="btnBackToAR" class="btn small">Повернутися до AR</button>
       </div>
@@ -263,7 +289,6 @@
     const menuGame1 = document.getElementById('menuGame1');
     const menuGame2 = document.getElementById('menuGame2');
     const menuBack = document.getElementById('menuBack');
-
     const gameOverlay = document.getElementById('gameOverlay');
     const gameCanvas = document.getElementById('gameCanvas');
     const gameTitle = document.getElementById('gameTitle');
@@ -273,36 +298,50 @@
     const btnRestart = document.getElementById('btnRestart');
     const markerHint = document.getElementById('markerHint');
     const videoPlane = document.getElementById('videoPlane');
+    const loader = document.getElementById('loader');
 
     // Стан AR
     let isMarkerFound = false;
 
+    // Функції блокування прокрутки
+    function lockScroll() {
+      document.body.style.overflow = 'hidden';
+    }
+    function unlockScroll() {
+      document.body.style.overflow = '';
+    }
+
     // Обробка помилки завантаження відео
     videoEl.addEventListener('error', () => {
-      console.error('Failed to load video1.mp4');
-      alert('Відео не знайдено. Переконайтеся, що файл video1.mp4 знаходиться поруч із цим HTML-файлом.');
+      console.error('Помилка завантаження video1.mp4');
+      alert('Відео не знайдено. Переконайтеся, що файл video1.mp4 або video1.webm є в тій самій папці.');
     });
 
     function ensurePlayAllowed() {
       const p = videoEl.play();
       if (p && p.then) {
-        p.then(()=> {
+        p.then(() => {
           videoEl.pause();
-        }).catch(()=>{/* ignore */});
+        }).catch(() => {/* ignore */});
       }
     }
 
     // Контроль відтворення
-    btnPlay.addEventListener('click', ()=> {
+    btnPlay.addEventListener('click', () => {
       if (isMarkerFound) {
-        videoEl.play().catch(()=>{ /* play might be blocked until user gesture */ });
+        videoEl.play().catch((e) => {
+          console.warn('Не вдалося відтворити відео автоматично:', e);
+          markerHint.textContent = 'Натисніть ще раз для відтворення';
+          markerHint.style.display = 'block';
+          setTimeout(() => { markerHint.style.display = 'none'; }, 3000);
+        });
       } else {
         markerHint.style.display = 'block';
         setTimeout(() => { markerHint.style.display = 'none'; }, 3000);
       }
     });
 
-    btnStop.addEventListener('click', ()=> {
+    btnStop.addEventListener('click', () => {
       if (isMarkerFound) {
         videoEl.pause();
         videoEl.currentTime = 0;
@@ -323,78 +362,75 @@
       openGame(name);
     }
 
-    btnGame1.addEventListener('click', ()=> checkARAndOpenGame('love'));
-    btnGame2.addEventListener('click', ()=> checkARAndOpenGame('pilot'));
-    menuGame1.addEventListener('click', ()=> checkARAndOpenGame('love'));
-    menuGame2.addEventListener('click', ()=> checkARAndOpenGame('pilot'));
+    btnGame1.addEventListener('click', () => checkARAndOpenGame('love'));
+    btnGame2.addEventListener('click', () => checkARAndOpenGame('pilot'));
+    menuGame1.addEventListener('click', () => checkARAndOpenGame('love'));
+    menuGame2.addEventListener('click', () => checkARAndOpenGame('pilot'));
 
-    function showMenu(){
+    function showMenu() {
       if (isMarkerFound) {
         menu.style.display = 'flex';
-        menu.setAttribute('aria-hidden','false');
+        menu.setAttribute('aria-hidden', 'false');
       }
     }
-    function hideMenu(){
+    function hideMenu() {
       menu.style.display = 'none';
-      menu.setAttribute('aria-hidden','true');
+      menu.setAttribute('aria-hidden', 'true');
     }
 
-    videoEl.addEventListener('ended', ()=> {
+    videoEl.addEventListener('ended', () => {
       if (isMarkerFound) showMenu();
     });
 
     const scene = document.querySelector('a-scene');
 
-    scene.addEventListener('renderstart', ()=> {
+    scene.addEventListener('renderstart', () => {
       ensurePlayAllowed();
     });
 
-    scene.addEventListener('targetFound', (ev)=> {
+    scene.addEventListener('targetFound', (ev) => {
       isMarkerFound = true;
       markerHint.style.display = 'none';
+      loader.style.display = 'none';
 
       const ring = document.getElementById('goldRing');
       ring.setAttribute('visible', 'true');
-      setTimeout(()=> ring.setAttribute('visible','false'), 900);
+      setTimeout(() => ring.setAttribute('visible', 'false'), 900);
 
       videoPlane.setAttribute('visible', 'true');
 
-      // Якщо відео вже має бути включеним — запускаємо
-      if (!videoEl.paused && !videoEl.ended) {
-        if (videoEl.readyState >= 2) {
-          videoEl.play().catch((e) => {
-            console.warn('Не вдалося відтворити відео автоматично:', e);
-            markerHint.textContent = 'Натисніть Play для відтворення';
-            markerHint.style.display = 'block';
-            setTimeout(() => { markerHint.style.display = 'none'; }, 3000);
-          });
-        }
+      if (!videoEl.paused && !videoEl.ended && videoEl.readyState >= 2) {
+        videoEl.play().catch((e) => {
+          console.warn('Не вдалося відтворити відео автоматично:', e);
+          markerHint.textContent = 'Натисніть Play для відтворення';
+          markerHint.style.display = 'block';
+          setTimeout(() => { markerHint.style.display = 'none'; }, 3000);
+        });
       }
 
       hideMenu();
     });
 
-    scene.addEventListener('targetLost', (ev)=> {
+    scene.addEventListener('targetLost', (ev) => {
       isMarkerFound = false;
-      if (!videoEl.paused) {
-        videoEl.pause();
-      }
+      if (!videoEl.paused) videoEl.pause();
       videoPlane.setAttribute('visible', 'false');
       hideMenu();
     });
 
     scene.addEventListener('arError', (ev) => {
       console.error('Помилка ініціалізації AR:', ev.detail);
+      loader.style.display = 'none';
       markerHint.textContent = 'Не вдалося запустити AR. Перевірте доступ до камери.';
       markerHint.style.display = 'block';
     });
 
-    menuBack.addEventListener('click', ()=> {
+    menuBack.addEventListener('click', () => {
       if (isMarkerFound) hideMenu();
     });
 
     btnBackToAR.addEventListener('click', closeGame);
-    btnRestart.addEventListener('click', ()=> {
+    btnRestart.addEventListener('click', () => {
       if (currentGame === 'love') startLoveMatch();
       if (currentGame === 'pilot') startPilot();
     });
@@ -406,10 +442,9 @@
     let pilotRemaining = 60;
 
     function openGame(name) {
+      lockScroll();
       if (!isMarkerFound) return;
-      if (!videoEl.paused) {
-        videoEl.pause();
-      }
+      if (!videoEl.paused) videoEl.pause();
       hideMenu();
       currentGame = name;
       gameOverlay.style.display = 'flex';
@@ -418,30 +453,31 @@
         gameTitle.textContent = 'Love Match ❤️🪽';
         startLoveMatch();
       } else if (name === 'pilot') {
-        gameTitle.textContent = 'Славочка-пілот ✈️';
+        gameTitle.textContent = 'Аня надає крила 🪽';
         startPilot();
       }
     }
 
-    function closeGame(){
+    function closeGame() {
       if (gameOverlay._cleanup) {
-        try { gameOverlay._cleanup(); } catch(e) {}
+        try { gameOverlay._cleanup(); } catch (e) {}
         gameOverlay._cleanup = null;
       }
       stopAllGameLoops();
       gameOverlay.style.display = 'none';
       currentGame = null;
       victoryText.style.display = 'none';
+      unlockScroll();
     }
 
-    function stopAllGameLoops(){
+    function stopAllGameLoops() {
       if (gameLoopHandle) { cancelAnimationFrame(gameLoopHandle); gameLoopHandle = null; }
       if (pilotTimerHandle) { clearInterval(pilotTimerHandle); pilotTimerHandle = null; }
       const ctx = gameCanvas.getContext('2d');
-      ctx && ctx.clearRect(0,0,gameCanvas.width,gameCanvas.height);
+      ctx && ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
     }
 
-    function fitCanvas(){
+    function fitCanvas() {
       const ratio = window.devicePixelRatio || 1;
       const maxWidth = Math.min(window.innerWidth - 40, 420);
       const maxHeight = window.innerHeight * 0.62;
@@ -458,11 +494,11 @@
     fitCanvas();
 
     /* ----------------- Game 1: Love Match ----------------- */
-    function startLoveMatch(){
+    function startLoveMatch() {
       stopAllGameLoops();
       fitCanvas();
       const ctx = gameCanvas.getContext('2d');
-      const sequence = ['❤️','🪽'];
+      const sequence = ['❤️', '🪽'];
       let step = 0;
       let score = 0;
       let currentEmoji = null;
@@ -470,53 +506,51 @@
 
       gameTimer.textContent = '';
 
-      function draw(){
-        ctx.clearRect(0,0,gameCanvas.width, gameCanvas.height);
-        // Прозорий фон — нічого не малюємо!
-
+      function draw() {
+        ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
         ctx.font = Math.round(gameCanvas.height * 0.35) + 'px serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = '#fff';
         if (currentEmoji) {
-          ctx.shadowColor = 'rgba(212,175,55,0.8)';
+          ctx.shadowColor = 'rgba(212, 175, 55, 0.8)';
           ctx.shadowBlur = 18;
-          ctx.fillText(currentEmoji, gameCanvas.width/2, gameCanvas.height/2);
+          ctx.fillText(currentEmoji, gameCanvas.width / 2, gameCanvas.height / 2);
           ctx.shadowBlur = 0;
         } else {
-          ctx.fillText('Готуйся...', gameCanvas.width/2, gameCanvas.height/2);
+          ctx.fillText('Готуйся...', gameCanvas.width / 2, gameCanvas.height / 2);
         }
 
-        ctx.font = Math.round(gameCanvas.height*0.05) + 'px sans-serif';
+        ctx.font = Math.round(gameCanvas.height * 0.05) + 'px sans-serif';
         ctx.fillStyle = '#d4af37';
-        ctx.fillText('Score: ' + score, gameCanvas.width*0.5, gameCanvas.height*0.92);
+        ctx.fillText('Score: ' + score, gameCanvas.width * 0.5, gameCanvas.height * 0.92);
 
         gameLoopHandle = requestAnimationFrame(draw);
       }
 
       draw();
 
-      let appearTimer = setInterval(()=> {
-        const distractors = ['🎂','🍷','🌹','😂','🎁','🐱','✨'];
+      let appearTimer = setInterval(() => {
+        const distractors = ['🎂', '🍷', '🌹', '😂', '🎁', '🐱', '✨'];
         if (Math.random() < 0.60) {
           currentEmoji = sequence[step % sequence.length];
         } else {
-          currentEmoji = distractors[Math.floor(Math.random()*distractors.length)];
+          currentEmoji = distractors[Math.floor(Math.random() * distractors.length)];
         }
       }, appearInterval);
 
-      function onTap(e){
+      function onTap(e) {
         if (!currentEmoji) return;
         const expected = sequence[step % sequence.length];
         if (currentEmoji === expected) {
           score += 1;
           step += 1;
           currentEmoji = '✨';
-          setTimeout(()=> { currentEmoji = null; }, 220);
+          setTimeout(() => { currentEmoji = null; }, 220);
         } else {
-          score = Math.max(0, score-1);
+          score = Math.max(0, score - 1);
           currentEmoji = '❌';
-          setTimeout(()=> { currentEmoji = null; }, 300);
+          setTimeout(() => { currentEmoji = null; }, 300);
         }
         if (score >= 8) {
           clearInterval(appearTimer);
@@ -533,21 +567,20 @@
       gameCanvas.addEventListener('touchstart', onTap);
       gameCanvas.addEventListener('mousedown', onTap);
 
-      function showLoveVictory(){
+      function showLoveVictory() {
         const ctx = gameCanvas.getContext('2d');
-        ctx.clearRect(0,0,gameCanvas.width,gameCanvas.height);
-        // Прозорий фон — нічого не малюємо!
-        ctx.font = Math.round(gameCanvas.height*0.26) + 'px serif';
+        ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+        ctx.font = Math.round(gameCanvas.height * 0.26) + 'px serif';
         ctx.textAlign = 'center';
         ctx.fillStyle = '#d4af37';
-        ctx.fillText('👩‍❤️‍👨🪽', gameCanvas.width/2, gameCanvas.height/2 - 20);
-        ctx.font = Math.round(gameCanvas.height*0.06) + 'px sans-serif';
-        ctx.fillText('Аня надає крила Славочку!', gameCanvas.width/2, gameCanvas.height/2 + gameCanvas.height*0.2);
+        ctx.fillText('👩‍❤️‍👨🪽', gameCanvas.width / 2, gameCanvas.height / 2 - 20);
+        ctx.font = Math.round(gameCanvas.height * 0.06) + 'px sans-serif';
+        ctx.fillText('Аня надає крила Славочку!', gameCanvas.width / 2, gameCanvas.height / 2 + gameCanvas.height * 0.2);
         victoryText.style.display = 'block';
         victoryText.textContent = 'Аня надає крила Славочку 💕';
       }
 
-      gameOverlay._cleanup = function(){
+      gameOverlay._cleanup = function() {
         clearInterval(appearTimer);
         gameCanvas.removeEventListener('pointerdown', onTap);
         gameCanvas.removeEventListener('touchstart', onTap);
@@ -555,8 +588,8 @@
       };
     }
 
-    /* ----------------- Game 2: Pilot ----------------- */
-    function startPilot(){
+    /* ----------------- Game 2: Аня надає крила ----------------- */
+    function startPilot() {
       stopAllGameLoops();
       fitCanvas();
       const ctx = gameCanvas.getContext('2d');
@@ -570,32 +603,30 @@
       let caught = 0;
       let requiredToWin = 8;
       let fallingEmojis = [];
-      const allEmojis = ['🪽','🎂','🍷','🐱','🌹','🎁','✨','💍','🍾','🎉','💼','📱','🌟','🕶️','🍫'];
+      const allEmojis = ['🪽', '🎂', '🍷', '🐱', '🌹', '🎁', '✨', '💍', '🍾', '🎉', '💼', '📱', '🌟', '🕶️', '🍫'];
 
-      function spawnEmoji(){
+      function spawnEmoji() {
         if (fallingEmojis.length >= 8) return;
-        const e = allEmojis[Math.floor(Math.random()*allEmojis.length)];
-        const size = Math.round(Math.random()*(gameCanvas.height*0.09) + gameCanvas.height*0.05);
-        const x = Math.random()*(gameCanvas.width*0.8) + gameCanvas.width*0.1;
-        fallingEmojis.push({ emoji: e, x: x, y: -size, size: size, vy: Math.random()*1.2 + 0.8});
+        const e = allEmojis[Math.floor(Math.random() * allEmojis.length)];
+        const size = Math.round(Math.random() * (gameCanvas.height * 0.09) + gameCanvas.height * 0.05);
+        const x = Math.random() * (gameCanvas.width * 0.8) + gameCanvas.width * 0.1;
+        fallingEmojis.push({ emoji: e, x: x, y: -size, size: size, vy: Math.random() * 1.2 + 0.8 });
       }
 
-      for (let i=0;i<8;i++) spawnEmoji();
+      for (let i = 0; i < 8; i++) spawnEmoji();
 
-      function draw(){
-        ctx.clearRect(0,0,gameCanvas.width, gameCanvas.height);
-        // Прозорий фон — нічого не малюємо!
-
+      function draw() {
+        ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
         ctx.font = '40px serif';
-        for (let i=fallingEmojis.length-1;i>=0;i--){
+        for (let i = fallingEmojis.length - 1; i >= 0; i--) {
           const f = fallingEmojis[i];
           f.y += f.vy * 1.6;
           ctx.font = Math.round(f.size) + 'px serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(f.emoji, f.x, f.y + f.size*0.5);
+          ctx.fillText(f.emoji, f.x, f.y + f.size * 0.5);
           if (f.y > gameCanvas.height + 80) {
-            fallingEmojis.splice(i,1);
+            fallingEmojis.splice(i, 1);
           }
         }
 
@@ -606,22 +637,22 @@
         const floorY = gameCanvas.height * 0.84;
         if (pilotY > floorY) { pilotY = floorY; vy = 0; }
 
-        const pilotSize = Math.round(gameCanvas.height*0.10);
+        const pilotSize = Math.round(gameCanvas.height * 0.10);
         ctx.font = pilotSize + 'px serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('👨', pilotX, pilotY);
 
-        ctx.font = Math.round(gameCanvas.height*0.045) + 'px sans-serif';
+        ctx.font = Math.round(gameCanvas.height * 0.045) + 'px sans-serif';
         ctx.fillStyle = '#d4af37';
-        ctx.fillText('Крила: ' + caught, gameCanvas.width*0.85, gameCanvas.height*0.08);
+        ctx.fillText('Крила: ' + caught, gameCanvas.width * 0.85, gameCanvas.height * 0.08);
 
         gameLoopHandle = requestAnimationFrame(draw);
       }
       draw();
 
       gameTimer.textContent = pilotRemaining + 's';
-      pilotTimerHandle = setInterval(()=> {
+      pilotTimerHandle = setInterval(() => {
         pilotRemaining -= 1;
         gameTimer.textContent = pilotRemaining + 's';
         if (pilotRemaining <= 0) {
@@ -631,18 +662,18 @@
         }
       }, 1000);
 
-      function onTap(e){
+      function onTap(e) {
         const rect = gameCanvas.getBoundingClientRect();
         const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
         const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
-        for (let i = fallingEmojis.length-1; i >=0; i--){
+        for (let i = fallingEmojis.length - 1; i >= 0; i--) {
           const f = fallingEmojis[i];
           const fx = f.x;
-          const fy = f.y + f.size*0.5;
-          const r = Math.max(f.size*0.6, 28);
+          const fy = f.y + f.size * 0.5;
+          const r = Math.max(f.size * 0.6, 28);
           if (Math.hypot(x - fx, y - fy) < r) {
             const tapped = f.emoji;
-            fallingEmojis.splice(i,1);
+            fallingEmojis.splice(i, 1);
             if (tapped === '🪽') {
               caught += 1;
               vy = speedUp;
@@ -656,18 +687,18 @@
         }
       }
 
-      function flashText(txt){
+      function flashText(txt) {
         victoryText.style.display = 'block';
         victoryText.style.color = '#d4af37';
         victoryText.textContent = txt;
-        setTimeout(()=> { victoryText.style.display = 'none'; }, 700);
+        setTimeout(() => { victoryText.style.display = 'none'; }, 700);
       }
 
       gameCanvas.addEventListener('pointerdown', onTap);
       gameCanvas.addEventListener('touchstart', onTap);
       gameCanvas.addEventListener('mousedown', onTap);
 
-      function endPilot(){
+      function endPilot() {
         gameCanvas.removeEventListener('pointerdown', onTap);
         gameCanvas.removeEventListener('touchstart', onTap);
         gameCanvas.removeEventListener('mousedown', onTap);
@@ -681,22 +712,21 @@
         }
       }
 
-      function showPilotVictory(){
+      function showPilotVictory() {
         const ctx = gameCanvas.getContext('2d');
-        ctx.clearRect(0,0,gameCanvas.width,gameCanvas.height);
-        // Прозорий фон — нічого не малюємо!
-        ctx.font = Math.round(gameCanvas.height*0.22) + 'px serif';
+        ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+        ctx.font = Math.round(gameCanvas.height * 0.22) + 'px serif';
         ctx.textAlign = 'center';
         ctx.fillStyle = '#d4af37';
-        ctx.fillText('💋', gameCanvas.width/2, gameCanvas.height*0.44);
-        ctx.font = Math.round(gameCanvas.height*0.06) + 'px sans-serif';
-        ctx.fillText('Привітай і поцілуй Аню', gameCanvas.width/2, gameCanvas.height*0.68);
+        ctx.fillText('💋', gameCanvas.width / 2, gameCanvas.height * 0.44);
+        ctx.font = Math.round(gameCanvas.height * 0.06) + 'px sans-serif';
+        ctx.fillText('Аня надала крила! Поцілуй її!', gameCanvas.width / 2, gameCanvas.height * 0.68);
         victoryText.style.display = 'block';
         victoryText.style.color = '#d4af37';
-        victoryText.textContent = 'Привітай і поцілуй Аню 😘';
+        victoryText.textContent = 'Аня надала крила! Поцілуй її! 😘';
       }
 
-      gameOverlay._cleanup = function(){
+      gameOverlay._cleanup = function() {
         clearInterval(pilotTimerHandle);
         pilotTimerHandle = null;
         gameCanvas.removeEventListener('pointerdown', onTap);
@@ -706,16 +736,20 @@
     }
 
     hideMenu();
-    markerHint.style.display = 'block';
-    setTimeout(() => { markerHint.style.display = 'none'; }, 4000);
+    markerHint.style.display = 'none';
+    setTimeout(() => {
+      if (loader && loader.style.display !== 'none') {
+        loader.style.display = 'none';
+      }
+    }, 4000);
 
-    document.addEventListener('visibilitychange', ()=> {
+    document.addEventListener('visibilitychange', () => {
       if (document.hidden && isMarkerFound) {
         if (!videoEl.paused) videoEl.pause();
       }
     });
 
-    document.body.addEventListener('pointerdown', function _initAudioOnce(){
+    document.body.addEventListener('pointerdown', function _initAudioOnce() {
       ensurePlayAllowed();
       document.body.removeEventListener('pointerdown', _initAudioOnce);
     });
