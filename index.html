@@ -228,20 +228,35 @@
         opacity: 0;
         pointer-events: none;
     }
-/* Video Controls — тепер у ВЕРХНЬОМУ ПРАВОМУ КУТІ */
+/* Video Controls — угорі, по центру */
 .video-controls {
     position: fixed;
-    top: 16px;          /* Відступ зверху */
-    right: 16px;        /* Відступ справа */
+    top: 20px;          /* 👈 зверху */
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 35;
     display: flex;
-    flex-direction: column; /* Вертикально */
-    gap: 10px;
+    gap: 16px;
     pointer-events: auto;
-    width: auto;
-    max-width: none;
+    padding: 0 20px;
+    width: 100%;
+    max-width: 400px;
+    justify-content: center;
     opacity: 0;
     transition: opacity 0.3s ease;
+}
+
+/* На малих екранах — залишаємо рядком, але трохи зменшуємо */
+@media (max-width: 480px) {
+    .video-controls {
+        gap: 12px;
+        padding: 0 16px;
+    }
+    .video-btn {
+        padding: 12px 18px;
+        font-size: 15px;
+        min-width: 130px;
+    }
 }
 
 .video-controls.visible {
@@ -252,26 +267,26 @@
     background: rgba(212, 175, 55, 0.95);
     color: #000;
     border: none;
-    padding: 10px 14px;
-    border-radius: 10px;
+    padding: 14px 24px;
+    border-radius: 14px;
     font-family: 'Inter', sans-serif;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 16px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    min-width: auto;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s ease;
+    min-width: 150px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
 }
 
 .video-btn:hover {
     background: rgba(212, 175, 55, 1);
-    transform: scale(1.03);
+    transform: scale(1.05);
 }
 
 .video-btn:active {
-    transform: scale(0.98);
+    transform: scale(0.95);
 }
 
 .sound-btn {
@@ -707,5 +722,6 @@
     </script>
 </body>
 </html>
+
 
 
