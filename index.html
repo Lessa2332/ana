@@ -229,47 +229,62 @@
         pointer-events: none;
     }
 
-    /* Video Controls — без змін */
+/* Video Controls — ПІДНЯЛИ ВИЩЕ */
+.video-controls {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 35;
+    display: flex;
+    gap: 16px;
+    pointer-events: auto;
+    padding: 0 20px;
+    width: 100%;
+    max-width: 400px;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    bottom: calc(40px + env(safe-area-inset-bottom, 20px));
+}
+
+@media (max-height: 700px) {
     .video-controls {
-        position: fixed;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 35;
-        display: flex;
-        gap: 16px;
-        pointer-events: auto;
-        padding: 0 20px;
+        bottom: calc(30px + env(safe-area-inset-bottom, 20px));
+    }
+}
+
+@media (max-height: 650px) {
+    .video-controls {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        max-width: 300px;
+        bottom: calc(20px + env(safe-area-inset-bottom, 20px));
+    }
+    .video-btn {
         width: 100%;
-        max-width: 400px;
-        justify-content: center;
-        opacity: 0;
-        transition: opacity 0.3s ease;
+        max-width: 280px;
+        padding: 14px;
+        font-size: 16px;
+    }
+    #markerHint {
         bottom: calc(80px + env(safe-area-inset-bottom, 20px));
     }
+}
 
-    @media (max-height: 700px) {
-        .video-controls {
-            bottom: calc(70px + env(safe-area-inset-bottom, 20px));
-        }
+@media (max-height: 600px) {
+    .video-controls {
+        bottom: calc(10px + env(safe-area-inset-bottom, 20px));
+        gap: 10px;
     }
-
-    @media (max-height: 650px) {
-        .video-controls {
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-            max-width: 300px;
-            bottom: calc(60px + env(safe-area-inset-bottom, 20px));
-        }
-        .video-btn {
-            width: 100%;
-            max-width: 280px;
-            padding: 14px;
-            font-size: 16px;
-        }
-        #markerHint {
-            bottom: calc(110px + env(safe-area-inset-bottom, 20px));
-        }
+    .video-btn {
+        padding: 12px;
+        font-size: 15px;
+    }
+    #markerHint {
+        bottom: calc(60px + env(safe-area-inset-bottom, 20px));
+    }
+}
     }
 
     @media (max-height: 600px) {
@@ -749,3 +764,4 @@
     </script>
 </body>
 </html>
+
